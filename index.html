@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<script>(function(){var t;try{t=localStorage.getItem('donna-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+<title>Donna · Service Manager Support</title>
+<style>
+  :root{
+    --bg:#f5f5f7; --bg-hi:#ffffff; --bg-lo:#e8e8ed; --card:#ffffff; --fill:#ededf0; --fill2:#e3e3e8;
+    --sep:rgba(60,60,67,.16); --label:#1d1d1f; --label2:#6e6e73;
+    --accent:#0066cc; --accent-fill:#0066cc; --on-accent:#ffffff;
+    --green:#1a7f37; --red:#c9182b; --amber:#a64a00; --amber2:#a64a00;
+    --green-fill:#34c759; --red-fill:#ff3b30; --orange-fill:#ff9500;
+    --muted:var(--label2); --line:var(--sep);
+    --bubble:#e9e9eb; --glass:rgba(250,250,252,.72); --glass-line:rgba(0,0,0,.06);
+    --shadow:0 12px 40px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.04);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",system-ui,sans-serif;
+    color-scheme:light;
+    --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue","Segoe UI",system-ui,sans-serif;
+  }
+  :root[data-theme=dark]{
+    color-scheme:dark;
+      --bg:#000000; --bg-hi:#26262a; --bg-lo:#000000; --card:#1c1c1e; --fill:#2c2c2e; --fill2:#3a3a3c;
+      --sep:rgba(84,84,88,.55); --label:#f5f5f7; --label2:#a1a1a6;
+      --accent:#4da3ff; --accent-fill:#0a7aff; --on-accent:#ffffff;
+      --green:#32d74b; --red:#ff6961; --amber:#ffb340; --amber2:#ffb340;
+      --green-fill:#30d158; --red-fill:#ff453a; --orange-fill:#ff9f0a;
+      --bubble:#2c2c2e; --glass:rgba(30,30,32,.66); --glass-line:rgba(255,255,255,.08);
+      --shadow:0 12px 40px rgba(0,0,0,.6);
+  }
+  @media (prefers-contrast:more){ :root{ --label2:var(--label); --sep:var(--label2); --glass:var(--card) } }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{font-family:var(--font);font-size:15px;line-height:1.45;color:var(--label);background:radial-gradient(120% 90% at 50% 38%,var(--bg-hi) 0%,var(--bg) 52%,var(--bg-lo) 100%);-webkit-font-smoothing:antialiased;letter-spacing:-.006em}
+  button,input,textarea{font:inherit;color:inherit}
+  button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:10px}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  /* ---------- SCENE ---------- */
+  .scene{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 16px 96px;transition:transform .5s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+  .scene > *{pointer-events:auto}
+  body.has-right .scene{transform:translateX(-215px)}
+  body.has-left .scene{transform:translateX(215px)}
+  body.has-left.has-right .scene{transform:none}
+  .hero{text-align:center;margin-bottom:clamp(8px,3vh,28px);max-width:520px}
+  .eyebrow{font-size:17px;font-weight:600;color:var(--label2);margin:0}
+  h1{font-family:var(--font-display);font-size:clamp(44px,7vh,72px);line-height:1.04;font-weight:700;letter-spacing:-.03em;margin:2px 0 10px}
+  .say{font-size:clamp(17px,2.4vh,21px);line-height:1.38;color:var(--label2);margin:0 auto;min-height:2.8em;max-width:30ch;transition:opacity .25s ease}
+  .say.fade{opacity:0}
+  .orb-wrap{display:flex;flex-direction:column;align-items:center;position:relative}
+  .orb{width:min(300px,38vh);aspect-ratio:1;border-radius:50%;position:relative;cursor:pointer;background:#000;will-change:transform;-webkit-tap-highlight-color:transparent;
+    box-shadow:0 0 0 1px rgba(255,255,255,.07),0 0 calc(40px + 80px*var(--glow,.3)) rgba(255,150,50,calc(var(--glow,.3)*.55)),0 40px 90px -30px rgba(0,0,0,.55)}
+  .orb:focus-visible{outline:3px solid var(--accent);outline-offset:8px;border-radius:50%}
+  .orb canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:50%}
+  .orb-glass{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle at 50% 50%,transparent 60%,rgba(255,255,255,.05) 74%,rgba(255,255,255,.20) 97%,rgba(255,255,255,.32) 100%),
+               radial-gradient(ellipse 36% 14% at 42% 13%,rgba(255,255,255,.22),rgba(255,255,255,0) 72%),
+               radial-gradient(ellipse 30% 12% at 60% 90%,rgba(255,255,255,.08),rgba(255,255,255,0) 70%);
+    box-shadow:inset 0 -24px 50px rgba(0,0,0,.55),inset 0 10px 30px rgba(255,255,255,.05)}
+  .orb-floor{width:70%;height:22px;margin-top:18px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.28),rgba(0,0,0,0));transition:opacity .3s}
+  [data-theme=dark] .orb-floor{background:radial-gradient(closest-side,rgba(255,150,50,calc(var(--glow,.3)*.35)),rgba(255,150,50,0))}
+  .nameplate{margin-top:6px;font-size:12px;font-weight:600;letter-spacing:.32em;color:var(--label2);padding-left:.32em}
+
+  /* entrance */
+  .hero > *, .orb-wrap{animation:rise .9s cubic-bezier(.2,.8,.2,1) both}
+  .hero .eyebrow{animation-delay:.05s}.hero h1{animation-delay:.15s}.hero .say{animation-delay:.25s}.orb-wrap{animation-delay:.1s}
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+  .theme{border:0;background:transparent;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--label)}
+  .theme:hover{background:var(--fill)}
+  .theme svg{width:19px;height:19px}
+  .theme .moon{display:block}.theme .sun{display:none}
+  [data-theme=dark] .theme .moon{display:none}[data-theme=dark] .theme .sun{display:block}
+  .tr{display:flex;align-items:center;gap:2px}
+
+  /* ---------- GLASS BARS (functional layer only) ---------- */
+  .glass{background:var(--glass);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border:1px solid var(--glass-line);box-shadow:0 4px 24px rgba(0,0,0,.06)}
+  @media (prefers-reduced-transparency:reduce){ .glass{background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none} }
+  .top{position:fixed;top:14px;left:16px;right:16px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;pointer-events:none}
+  .top > *{pointer-events:auto}
+  .mark{display:flex;align-items:center;gap:8px;font-weight:600;font-size:17px;padding:6px 14px 6px 8px;border-radius:999px;letter-spacing:-.01em}
+  .seg{display:flex;gap:2px;padding:4px;border-radius:999px}
+  .seg button{border:0;background:transparent;font-weight:600;font-size:14px;padding:8px 18px;border-radius:999px;min-height:36px;display:flex;align-items:center;gap:7px;color:var(--label);transition:background .2s}
+  .seg button:hover{background:var(--fill)}
+  .seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--accent)}
+  .seg svg{width:17px;height:17px}
+  .status{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--label2);padding:9px 14px;border-radius:999px}
+  .status i{width:7px;height:7px;border-radius:50%;background:var(--label2)}
+  .status.live i{background:var(--green-fill)}
+  .tabbar{display:none}
+
+  /* ---------- PANELS ---------- */
+  .panel{position:fixed;top:72px;bottom:44px;width:min(420px,calc(100vw - 32px));background:var(--card);border-radius:22px;box-shadow:var(--shadow);z-index:6;display:flex;flex-direction:column;overflow:hidden;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
+  [data-theme=dark] .panel{border:1px solid rgba(255,255,255,.07)}
+  .panel.right{right:16px}.panel.left{left:16px}
+  .panel.hidden.right{transform:translateX(110%);opacity:0;pointer-events:none;visibility:hidden}
+  .panel.hidden.left{transform:translateX(-110%);opacity:0;pointer-events:none;visibility:hidden}
+  .grab{display:none}
+  .ph{display:flex;align-items:center;gap:8px;padding:16px 14px 10px 20px;min-height:58px}
+  .ph h2{margin:0;font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:-.02em;flex:1}
+  .back{border:0;background:none;color:var(--accent);font-size:15px;font-weight:500;padding:6px 8px 6px 2px;margin-left:-6px;display:flex;align-items:center;gap:2px;min-height:36px}
+  .back[hidden]{display:none}
+  .x{border:0;background:var(--fill);color:var(--label2);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none}
+  .x:hover{background:var(--fill2)}
+  .x svg{width:12px;height:12px}
+
+  /* chat */
+  .msgs{flex:1;overflow:auto;padding:4px 16px 12px;display:flex;flex-direction:column;gap:6px}
+  .m{max-width:84%;padding:9px 14px;border-radius:19px;word-wrap:break-word;animation:pop .28s cubic-bezier(.2,.8,.2,1) both}
+  .m.d{background:var(--bubble);align-self:flex-start;border-bottom-left-radius:6px}
+  .m.u{background:var(--accent-fill);color:var(--on-accent);align-self:flex-end;border-bottom-right-radius:6px;margin-top:6px}
+  .m.d + .m.u, .m.u + .m.d{margin-top:8px}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  .m p{margin:.3em 0}.m ul,.m ol{margin:.3em 0;padding-left:1.25em}.m li{margin:.15em 0}.m h4{margin:.4em 0 .2em;font-size:15px;font-weight:600}
+  .m table{border-collapse:collapse;font-size:13px;margin:.4em 0;width:100%}.m td,.m th{border-bottom:1px solid var(--sep);padding:5px 4px;text-align:left;vertical-align:top}.m th{font-weight:600;color:var(--label2)}
+  .m code{background:var(--fill2);padding:0 4px;border-radius:5px}
+  .typing{display:inline-flex;gap:4px;padding:5px 0}.typing i{width:7px;height:7px;border-radius:50%;background:var(--label2);opacity:.5;animation:dot 1.2s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes dot{0%,100%{opacity:.3}40%{opacity:.9}}
+  .chips{display:flex;gap:8px;padding:2px 16px 10px;overflow-x:auto;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;border:0;background:var(--fill);border-radius:999px;padding:0 14px;min-height:34px;font-size:13.5px;font-weight:500}
+  .chip:hover{background:var(--fill2)}
+  form.ask{display:flex;align-items:flex-end;gap:8px;margin:0 12px 6px;padding:5px 5px 5px 14px;border:1px solid var(--sep);border-radius:22px;background:var(--card)}
+  form.ask textarea{flex:1;resize:none;border:0;background:transparent;padding:7px 0;font-size:15px;height:34px;max-height:120px;outline:none}
+  form.ask button{border:0;width:30px;height:30px;border-radius:50%;background:var(--accent-fill);color:var(--on-accent);display:grid;place-items:center;flex:none;margin-bottom:2px;transition:background .2s,opacity .2s}
+  form.ask button:disabled{background:var(--fill2);color:var(--label2)}
+  .note{font-size:12px;color:var(--label2);padding:0 20px 12px;text-align:center}
+
+  /* grouped lists (toolkit, my day) */
+  .scroll{flex:1;overflow:auto;padding:0 16px 20px}
+  .gh{font-size:13px;font-weight:600;color:var(--label2);margin:18px 4px 6px;text-transform:uppercase;letter-spacing:.02em}
+  .group{background:var(--fill);border-radius:14px;overflow:hidden}
+  [data-theme=dark] .group{background:#2c2c2e}
+  .cell{display:flex;align-items:center;gap:12px;padding:11px 14px;min-height:50px;width:100%;border:0;background:transparent;text-align:left;position:relative}
+  .cell + .cell:before{content:"";position:absolute;top:0;right:0;left:56px;height:1px;background:var(--sep)}
+  .group.plain .cell + .cell:before{left:14px}
+  button.cell:hover{background:var(--fill2)}
+  .ico{width:30px;height:30px;border-radius:8px;background:var(--card);display:grid;place-items:center;flex:none;color:var(--label)}
+  .ico svg{width:17px;height:17px}
+  .ct{flex:1;min-width:0}.ct b{display:block;font-weight:600;font-size:15px}.ct span{display:block;font-size:13px;color:var(--label2);line-height:1.35}
+  .chev{color:var(--label2);flex:none}
+  .lead{font-size:15px;color:var(--label2);margin:0 4px 4px}
+  .field{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 14px;min-height:48px;position:relative}
+  .field + .field:before{content:"";position:absolute;top:0;right:0;left:14px;height:1px;background:var(--sep)}
+  .field label{font-size:15px;flex:1}
+  .field input{width:110px;border:0;background:transparent;text-align:right;font-size:15px;color:var(--accent);font-variant-numeric:tabular-nums;padding:10px 0;outline:none}
+  .field input:focus{color:var(--label)}
+  .out{background:var(--fill);border-radius:14px;padding:12px 14px;margin-top:14px;font-size:15px}
+  [data-theme=dark] .out{background:#2c2c2e}
+  .out .row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--sep)}
+  .out .row:last-child{border:0}
+  .out b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+  .out .sub, .sub{color:var(--label2);font-size:13px}
+  .kpi{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--sep);font-size:14px;line-height:1.4}
+  .kpi:last-of-type{border-bottom:0}
+  .dot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:5px}
+  .g{background:var(--green-fill)}.r{background:var(--red-fill)}.a{background:var(--orange-fill)}
+  .tag{font-size:12px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:4px;white-space:nowrap}
+  .tag.g{background:transparent;color:var(--green);box-shadow:inset 0 0 0 1px currentColor}.tag.r{background:transparent;color:var(--red);box-shadow:inset 0 0 0 1px currentColor}
+  .btn2{margin-top:14px;border:0;background:var(--accent-fill);color:var(--on-accent);font-weight:600;font-size:15px;border-radius:12px;min-height:44px;padding:0 16px;width:100%}
+  .btn2:hover{filter:brightness(1.06)}
+  .meter{height:6px;border-radius:99px;background:var(--fill2);overflow:hidden;margin:6px 0 4px}.meter i{display:block;height:100%;border-radius:99px}
+  .big{font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+  /* my day */
+  .dayhead{display:flex;align-items:center;gap:14px;padding:4px 4px 2px}
+  .dayhead b{display:block;font-size:17px;font-weight:600}.dayhead span{font-size:13px;color:var(--label2)}
+  .chk{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;min-height:48px;cursor:pointer;position:relative;font-size:15px;line-height:1.38}
+  .chk + .chk:before{content:"";position:absolute;top:0;right:0;left:48px;height:1px;background:var(--sep)}
+  .chk input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--label2);margin:0;display:grid;place-items:center;cursor:pointer;background:transparent;transition:background .15s,border-color .15s}
+  .chk input:checked{background:var(--accent-fill);border-color:var(--accent-fill)}
+  .chk input:checked:after{content:"";width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+  .chk input:checked + span{color:var(--label2)}
+  .tip{background:var(--fill);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--label2);margin-top:18px}
+  [data-theme=dark] .tip{background:#2c2c2e}
+  .tip b{color:var(--label)}
+
+  /* footer */
+  .credit{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;font-size:11px;letter-spacing:.04em;color:var(--label2);white-space:nowrap;pointer-events:none}
+
+  @media (max-height:720px){ .hero .eyebrow{display:none} }
+  @media (max-width:760px){
+    body{font-size:17px}
+    .scene{padding-bottom:128px}
+    body.has-right .scene, body.has-left .scene{transform:none}
+    .hero{margin-bottom:6px} h1{font-size:44px}.say{font-size:17px}
+    .orb{width:min(240px,32vh)}
+    .top .seg{display:none}
+    .tabbar{display:flex;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(26px + env(safe-area-inset-bottom));z-index:8;width:min(360px,calc(100vw - 32px));border-radius:32px;padding:5px;justify-content:space-between}
+    .tabbar button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--label);min-height:50px;border-radius:26px;justify-content:center}
+    .tabbar button svg{width:23px;height:23px}
+    .tabbar button[aria-selected=true]{color:var(--accent);background:var(--fill)}
+    .panel{top:auto;left:0!important;right:0!important;width:auto;bottom:0;height:calc(100dvh - 70px);border-radius:22px 22px 0 0;padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+    .panel.hidden.right,.panel.hidden.left{transform:translateY(105%)}
+    .grab{display:block;width:36px;height:5px;border-radius:3px;background:var(--fill2);margin:7px auto 0;flex:none}
+    .ph{padding-top:8px;touch-action:none}
+    .chip{min-height:40px;font-size:15px}
+    .m{font-size:17px}
+    .field label,.field input,.ct b,.chk{font-size:17px}
+    .field{min-height:50px}
+  }
+  @media (prefers-reduced-motion:reduce){ *,*:before,*:after{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+
+<!-- ======================= TOP BAR ======================= -->
+<header class="top">
+  <div class="mark" aria-label="Donna">
+    <svg width="22" height="22" viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="6" width="34" height="28" rx="12" fill="#f4f4f6" stroke="#c7c7cc"/><rect x="7.5" y="10.5" width="25" height="19" rx="8.5" fill="#0b0b0d"/><circle cx="15" cy="19.5" r="3" fill="#ff9f0a"/><circle cx="25" cy="19.5" r="3" fill="#ff9f0a"/></svg>
+    Donna
+  </div>
+  <nav class="seg glass" aria-label="Sections">
+    <button id="btnChat" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5c0 4.1-3.6 7.5-8 7.5-1.2 0-2.3-.2-3.3-.6L4 19.5l1.3-3.6C4.5 14.6 4 13.1 4 11.5 4 7.4 7.6 4 12 4s8 3.4 8 7.5z"/></svg>Chat</button>
+    <button id="btnTools" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7.5h7M8.5 12h1.5M14 12h1.5M8.5 16h1.5M14 16h1.5"/></svg>Toolkit</button>
+    <button id="btnDay" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.8-5"/></svg>My Day</button>
+  </nav>
+  <div class="tr">
+  <button class="theme" id="themeBtn" aria-label="Switch to Dark Appearance" title="Switch appearance"><svg class="moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>
+  <div class="status" id="status" title="Live answers need claude.ai. Elsewhere Donna uses her built-in guide."><i aria-hidden="true"></i><span class="lbl" id="statusTxt">Offline</span><span class="sr" id="statusSr">Offline mode</span></div>
+  </div>
+</header>
+
+<!-- ======================= SCENE ======================= -->
+<main class="scene">
+  <div class="hero">
+    <p class="eyebrow">Service Manager Support</p>
+    <h1>Donna</h1>
+    <p class="say" id="bubble" aria-live="polite">Your calm, capable colleague for every part of running a Center.</p>
+  </div>
+  <div class="orb-wrap">
+    <div class="orb" id="donna" role="button" tabindex="0" aria-label="Donna. Press to talk to her.">
+      <canvas id="orbCanvas" aria-hidden="true"></canvas>
+      <div class="orb-glass" aria-hidden="true"></div>
+    </div>
+    <div class="orb-floor" aria-hidden="true"></div>
+    <div class="nameplate" aria-hidden="true">DONNA</div>
+  </div>
+</main>
+
+<!-- ======================= CHAT ======================= -->
+<section class="panel right" id="chatPanel" aria-labelledby="chatTitle" role="dialog">
+  <div class="grab" aria-hidden="true"></div>
+  <div class="ph"><h2 id="chatTitle">Chat</h2><button class="x" data-close="chat" aria-label="Close Chat"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+  <div class="chips" id="chips" aria-label="Suggested topics"></div>
+  <form class="ask" id="ask">
+    <textarea id="q" placeholder="Ask about KPIs, renewals, schedules…" rows="1" aria-label="Message Donna"></textarea>
+    <button id="send" type="submit" aria-label="Send" disabled><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </form>
+  <div class="note" id="mode"></div>
+</section>
+
+<!-- ======================= TOOLKIT ======================= -->
+<section class="panel left hidden" id="toolPanel" aria-labelledby="toolTitle" role="dialog">
+  <div class="grab" aria-hidden="true"></div>
+  <div class="ph"><button class="back" id="toolBack" hidden><svg width="11" height="18" viewBox="0 0 11 18" aria-hidden="true"><path d="M9 2L2 9l7 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Toolkit</button><h2 id="toolTitle">Toolkit</h2><button class="x" data-close="tools" aria-label="Close Toolkit"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+  <div class="scroll" id="tool"></div>
+</section>
+
+<!-- ======================= MY DAY ======================= -->
+<section class="panel left hidden" id="dayPanel" aria-labelledby="dayTitle" role="dialog">
+  <div class="grab" aria-hidden="true"></div>
+  <div class="ph"><h2 id="dayTitle">My Day</h2><button class="x" data-close="day" aria-label="Close My Day"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+  <div class="scroll" id="day"></div>
+</section>
+
+<!-- ======================= MOBILE TAB BAR ======================= -->
+<nav class="tabbar glass" role="tablist" aria-label="Sections">
+  <button role="tab" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h10a5 5 0 0 1 5 5v3a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5v-3a5 5 0 0 1 5-5zm2 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>Donna</button>
+  <button role="tab" data-tab="chat" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5c4.7 0 8.5 3.5 8.5 7.9s-3.8 7.9-8.5 7.9c-1.2 0-2.4-.2-3.4-.6l-4.4 1.3 1.3-3.8c-1.2-1.4-2-3-2-4.8 0-4.4 3.8-7.9 8.5-7.9z"/></svg>Chat</button>
+  <button role="tab" data-tab="tools" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 2.5h8A3.5 3.5 0 0 1 19.5 6v12a3.5 3.5 0 0 1-3.5 3.5H8A3.5 3.5 0 0 1 4.5 18V6A3.5 3.5 0 0 1 8 2.5zm.5 4a1 1 0 0 0 0 2h7a1 1 0 1 0 0-2zm0 5a1 1 0 1 0 0 2h1.5a1 1 0 1 0 0-2zm5.5 0a1 1 0 1 0 0 2h1.5a1 1 0 1 0 0-2zm-5.5 4a1 1 0 1 0 0 2h1.5a1 1 0 1 0 0-2zm5.5 0a1 1 0 1 0 0 2h1.5a1 1 0 1 0 0-2z"/></svg>Toolkit</button>
+  <button role="tab" data-tab="day" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zm4.2 6.3a1 1 0 0 0-1.4.1l-3.9 4.4-1.7-1.7a1 1 0 1 0-1.4 1.4l2.5 2.5a1 1 0 0 0 1.5 0l4.6-5.3a1 1 0 0 0-.2-1.4z"/></svg>My Day</button>
+</nav>
+
+<div class="credit">Created by Alayham.</div>
+
+<script>
+/* ================= KNOWLEDGE ================= */
+const KNOWLEDGE = `
+ROLE: Service Manager (SM) delivers Student SUCCESS and SATISFACTION; success+satisfaction = Internal Revenue (renewals + referrals, up to 50% of Center objective). Four Bests: People (SM selects/trains ~2/3 of staff), Atmosphere, Method, Service. Six areas: HR & People; Communication; Management of Progress, Satisfaction & Profitability; Platforms & Tools; Leadership; Sales support. Mantra: "Inspect what you expect." Works with Center Director/Sales Manager; escalates to Regional/National Service Manager. Service team = SM, Coaches (formerly Personal Tutors), Teachers, and Receptionists where they exist.
+OFFICIAL WSE GLOBAL ROLE PROFILE (Service Manager): Reports to the Centre Director. Has overall responsibility for the delivery of service and the educational experience for Students in the Centre: the ambassador and leader of educational excellence. Leads the Service team (Teachers, Personal Tutors/Coaches, Receptionists) to give a consistent premium experience, which strengthens the brand and brings business stability through renewals and referrals; works in synergy with the Centre Director and sales team on internal sales (renewals and friends-and-family referrals). Spends much of the time overseeing each function against SOP and suggesting improvements so service always exceeds expectation; coaches and trains the team with passion.
+Essential duties: (1) lead the Service team to deliver a premium educational experience; (2) create an environment where Students AND alumni are inspired to engage with English in-center, online and in real life; (3) manage day-to-day Service and guarantee smooth operations; (4) guarantee learning through quality control and promoting the WSE Method; (5) make sure SOP is followed at all times for global brand consistency; (6) teach according to Center needs and lead by example; (7) partner with the Centre Director for a strong Service-Sales partnership, premium experience and internal sales targets; (8) work with HR on people development strategies for continuous development, retention and premium results; (9) work with the Corporate Sales Team so Corporate Students get the same learning experience in-center or offsite at company locations, managing these courses; (10) track, analyze and report Center Service performance and provide solutions for improvement areas; (11) make sure Student satisfaction and learning levels exceed benchmarks; (12) control educational standards by teaching Encounters, Complementary Classes, Social Club activities and First/Second Lessons; (13) drive the in-center community with a monthly Social Club calendar; (14) drive engagement of staff, Students and alumni in informal learning communities using digital tools, social media and in-center promotion; (15) implement new products and systems when required; (16) recruit, train and develop Service staff; (17) motivate and coach Centre staff to give premium service; (18) keep the optimum number of staff and schedule them to Student needs; (19) identify key improvement areas and implement the right changes; (20) give timely, accurate reports to the Centre Director; (21) maintain the Center's image and IT assets. Minimum requirements: native or bilingual English speaker, university degree, CELTA or equivalent TEFL certificate. The list is a snapshot, not exhaustive.
+
+SERVICE KPIs (Power BI Student Progress Daily/Monthly): Active Students Serviced % 75% (did 1 Multimedia mini cycle or 1 Encounter in period). Active Booked % 80% (active last 30 days and booked into future Encounter; Daily report only). Active Students Serviced Done 1+ Encounter 85%. Total Serviced Done 1+ 60%+. Monthly Progress Ratio (Encounters per active Student) target 1.6, healthy 1.33-2.0. First Encounter in 3 Weeks 80%. Average Levels Completed 2.5+ (Monthly only). Monthly report available day 5.
+EFFICIENCY KPIs (Class Efficiency / Class Planner BI): Classes Offered within 5% of recommendation; Students per Class = dynamic global average, max 4 per Encounter; Classes Given % 96%; No Show Rate under 15% (online no-shows still billed); Encounter Success Rate = % Continue.
+Benchmark = expected result when SOP followed. Below = red flag to investigate (observations, meetings, talking to Students, teaching, working Coach tasks). Always exceeded = too easy.
+Red flag causes: Active% -> follow-up/motivation, class quality, onboarding. Active Booked -> Coaches not booking next Encounter, not enough self-booking slots (Center Configuration). Done1+/MPR -> too few classes or wrong times, Action List prioritization, booking technique. First Enc 3 wks -> Welcome Session quality, 48h start, First Level follow-up. Classes Given/No show/Students per class -> over-scheduling, schedule built for Teachers not Students, not confirming single-Student classes.
+
+STUDY HABITS: 1 Lesson per session (3 mini cycles within 24h); Digital Student Workbook after each Lesson; all 3 Lessons before Encounter; 1 Encounter every 2 weeks; 1 Level every 2 months; 1 CC + 1 Social Club per Unit.
+
+CUSTOMER JOURNEY: Beginning (build habits, overcome fears, complete one Level, relationship, referrals): Welcome Session/First Lesson, First Encounter, First Level Advising Session + appointments; proactive First Encounter messaging, reactive onboarding/progress/inactive messaging, Action List. Middle: Encounters, CCs, Social Clubs, End of Level Advising Sessions. End: maximize remaining time, compare progress to goal, renew: End of Level Advising, Graduation, Renewal Appointment, Renewables. Goal 80% touchpoints completed. Client Fidelity Plan = structured feedback/follow-up.
+FIRST LEVEL SUCCESS: completing First Level within 90 days => 38% more likely to renew. Start within 48h of login; memorable Welcome Session; First Encounter within 3 weeks; Action List follow-up; First Level Progress Report (Coach tab); goals in daily/weekly/monthly meetings; celebrate. Student responsibilities: trust Method, use it as designed, open to new ideas, comfortable with uncertainty, take risks, regular study, plan time.
+
+REFERRALS: best moment = first month, after Welcome Session and First Encounter. ~1 referral lead per new Student; funnel 80% booked, 80% shown, 33% signed; target referral contracts ~25% of new contracts. Example 100 leads->80->64->21 contracts x $1500 = $31,500. Lever: Social Clubs/events (only class content designed by Center; based on Student interests; invite prospects/referrals; monthly calendar published week 4 of previous month; yearly plan, monthly themes, new-Student party, budget & ROI).
+RENEWALS: 20-30% of end contracts (aim 25-30%); renewals+referrals 40-50% of sales; annual target split over 12 months; quarterly/annual bonus. 10 steps: (1) week 3 SM downloads Renewables report (ending within 90 days); (2) week 3 SM flags hot leads (2.5+ Levels, ending within 90 days) in Action List Excel; (3) week 3 CD/Sales Manager + SM set Center & individual targets; (4) day 1 present at General Staff Meeting: Service books & confirms 80% of renewables, Sales renews 20-30%, weekly numbers; (5) day 1 SM assigns leads in shared online Renewables tracker; (6) weekly Coaches book: 90-60 days study advice, 60-30 days study advice or Consultant by progress (~10 Encounters), 30 days Consultant; (7) daily Consultants prep progress/grades/goals, propose new goals, update tracker, flag no-shows; (8) track contacted/booked/shows/objections (Service) and shows/contracts/objections (Sales); (9) weekly CD+SM review; (10) month-end reflection & celebration. Bonus ROI example: 1067 end contracts x30% = 320 x $1200 = $384,000; bonus 10% of $1400 = $140/month/Coach, $16,800/yr for 10 Coaches; ROI $367,200.
+
+COST: not only cutting; invest where ROI. Levers: efficient class offering, right staff numbers, teaching spend (scheduling, Students/class), Global Online Center spend, yearly budget incl. bonus, internal revenue. Class planning inputs: total Students, % active, Students per class type, classes per Student per month, working days, % online, access type, seasonality. Tools: Class Planner Power BI + Class Planner Excel (steps: workdays & Students; prediction model; activities & classes; % online; Students per class). Month-end Class Efficiency review; cost of late cancellations/no-shows. Global Online Classroom reduces Teacher cost. Teaching budget 10% of revenue. SM responsible for service headcount. Coach model: one person for booking, motivation, language support; up to 150 Students per Coach. Teacher true cost: recruitment, travel, relocation, visas, housing, salary, benefits, payroll taxes. Situation analysis before hiring; know the decision-maker.
+
+SCHEDULING TEACHERS: classes from Class Planner; time bands default 30% morning (opening-lunch) / 20% afternoon / 50% evening, localize after 3-6 months; evenings & Saturday mornings peak. SM assigns CC/SC Levels by active Student Level distribution (Class Planner BI 'Student Distribution by Level'); Encounters first-come first-served. Rotate rare-Level CCs across bands over 2-3 weeks; push small Levels to online Center. Recheck distribution every 3-6 months. Fair schedule: blocks 2-3h (max 4), few split shifts, early start=early finish, late finish=late start, max 2 blocks/day, fair mix of EN/CC/SC, share evenings & weekends; Students' needs first, no favoritism, part-timers cover peaks. Example 72 classes: 22/14/36 by band; 55 EN, 10 CC, 7 SC.
+SCHEDULING COACHES: 5 tasks: welcoming visitors, Teaching Support in Center, Welcome Sessions, Advising Sessions, Student Follow-Up. Min one Coach in Center at all times; extra Teaching Support at peak when 25+ Students need help; fair distribution; vary shifts; sessions at peak. Formulas (sessions 30 min, 4.3 weeks/month): New Students = projected revenue / average contract price; WS hours = new Students/2; WS per week = new Students/4.3. Advising per month = active Students x 85% / 3; hours = /2; per week = /4.3. Follow-up weekly hours = Students x 3 min / 60; monthly = weekly x 4.3; Coaches contact 20-30 Students/hour, each Student weekly. Order: shifts, WS, AS, then follow-up. Rotate weekly. Ensure delivery via training, QC, observations, weekly reviews, feedback, targets, managing by walking around.
+DAILY SCHEDULE OPTIMIZATION: 1 confirm one-Student Encounters; 2 confirm Students not yet done Lesson 3; 3 identify unused Encounters next 5 days; 4 contact yesterday's no-shows to rebook; 5 next week one-Student Encounters: bring Students forward; 6 merge uncommon classes next week; 7 move peak bookings of uncommon classes just before/after peak.
+
+PEOPLE: Quality control: SOP, staff selection, training/observation/development, open eye & ear, meetings, monitor performance; be present, MBWA, templates, Power BI, reward quality. Employee life-cycle: Recruitment (JDs, interview decks, business cases, templates), Performance Management (appraisals, Start/Stop/Continue, career conversations), Development (Learning Hub, training & observations), Exit (exit interview); HR Toolkit on Knowledge Hub. Hiring: JD, scoring system, competency-based, two-part interview, case study, specific examples, notes to benchmark. Mis-hire direct & indirect costs. Training: great trainer motivational, inspirational, constructive, expert, participant-focused; environment high energy, fun, low anxiety; techniques eliciting, concept questions, ICQs, correction, graded language, feedback; activities warm-ups, role-plays, quizzes etc. Communication funnel 80/60/40/30/20/10/5% => repeat & demonstrate. Learning Hub (LearnUpon): learning paths, assign courses, trainer resources, Course Status report.
+OBSERVATIONS 10 rules: 24h notice; no distractions; introduce yourself to Students; never interrupt or join; 30 min feedback; open "three things that went well"; then "three things to improve"; your 3 positives + 3 areas, specific, elicit solutions; agree what and how; book follow-up.
+LEADERSHIP: good managers develop people, praise, no-blame, inclusion, no surprises, SMART objectives, hold meetings, deliver promises. Delegate Customer Journey tasks per SOP and manage by results.
+
+COMMUNICATION: One Business Team (Sales + Service): shared goals sales, internal revenue, service KPIs, NPS, CSAT; 8 steps: build connections, common language, get involved, provide context, consistent communication, encourage feedback, set the tone, celebrate wins; weekly CD/SM touchpoint. Messages: clear, correct, complete, precise, reliable, empathetic. Meetings 5 Ps: Prepare, Punctual, Personal, Professional, Props = Productive. Key meetings: General Staff (monthly), Center Management (weekly), Center Sales (weekly), Kick-Off Sales (1st of month), Consultant 1:1 (daily), Coach 1:1 (daily), Service Meeting (weekly), Didactic Staff (monthly). Complaints: listen, empathize, get facts, explain policy & reason, offer what you can, agree next step, follow up, fix root cause.
+
+PROBLEM SOLVING SOS: Situation (what, where, when, how, with whom - not who to blame, why; root cause; get perspective), Objectives (achieve, preserve, avoid, eliminate) & Opportunities, Solution (brainstorm, choose, plan steps/owners/dates/resources/risks/measures, monitor, measure, summarize). ACTION PLAN: SMART goal; what, why, how, who, when. Template: KPIs, general comments, staff planning, staff development, Center communication, additional comments.
+
+TOOLS: Staff Tools (My Center config & holidays, Staff Accounts, Contracts create/extend/change start Level, Student List & Profile & bookmark, Reports & Action List export, Schedule Classes OWC/OAS/EN/CC/SC, Booking), Core Course, Power BI, Learning Hub, Knowledge Hub.
+KNOWN DECK SLIPS: WS formula printed '+' should be '/'; 255x85% = 216.75 not 221; 64.5 follow-up hours is per Center not per Coach; Avg Levels 2.5 vs 3 and renewals 20-30 vs 25-30 vary - confirm locally.
+
+PUBLIC RESEARCH (from WSE public job posts and website, 2024-2026; local versions differ, always confirm):
+- Job posts across Italy, Tunisia, UAE, Vietnam describe the SM as ultimately accountable for Students' educational success and satisfaction through their course; hiring, training and developing the service team; running daily service operations to WSE standards and procedures; teaching classes and promoting the WSE Method so staff and Students trust it and use it; quality control; facilitating internal revenue through quality service; meeting Student Success and internal sales targets. Some territories: SM reports to the Center Director and the National Service Manager. Typical asks: several years' teaching experience, experience leading multicultural teams, WSE teaching experience a plus.
+- Method in public pages: Encounters are small same-level classes (max 4 in most territories, some pages say up to 5; sometimes one-to-one depending on attendance). Complementary Classes are bigger teacher-led themed classes (about 8-12, e.g. Business, Career, Travel, Study). Social Clubs are daily social and practice activities (workshops, parties, events). Course is 20 Levels aligned to CEFR: Levels 1-2 beginner, Waystage 3-5, Upper Waystage 6-9, Threshold 10-13, Milestone 14-17, Mastery 18-20 (CEFR mapping varies by page; WSE says 90%+ of Students study at Levels 1-14, up to the end of B1).
+- Student-facing tech the SM should leverage: Study Planner (launched 2024; WSE says it helped 90%+ of Students arrive prepared for class) - coach every new Student to set it up in the Welcome Session; AI speaking practice / Conversation AI (2024) for extra speaking between Encounters; 24/7 AI support chatbot (Dec 2024) that answers routine questions so Coaches and Teachers have time for higher-value contact; Global Online Classroom (small online classes) for more choice and lower Teacher cost.
+GENERAL BEST PRACTICE (customer success, not WSE policy): churn shows first as a quiet drop in engagement, so compare each Student to their own usual pace, not only to the benchmark; the first 90 days decide retention; use a simple health score (study activity, Encounters, bookings, no-shows, sentiment) with a play for each risk signal; close the loop personally with unhappy Students (detractors) within 48 hours; make progress visible (Level certificates, progress talks) and remove friction from renewal conversations; align Sales and Service on one view of the Student.`;
+
+const SYSTEM = `You are Donna, a warm, sharp, upbeat support robot for Service Managers in every English-language Center of the network. You know the Service Manager job deeply. Use the KNOWLEDGE below as your standard; when you go beyond it, say it's general best practice. Benchmarks can be localized, so advise confirming local targets with the Regional/National Service Manager when relevant.
+How to answer:
+- Be practical and specific: steps, numbers, owners, timings, templates or scripts the SM can use today.
+- When a question needs data (KPIs, targets, headcount), ask for the missing numbers or show the formula with their numbers.
+- Do the arithmetic correctly and show it briefly.
+- Keep it concise: short paragraphs, bullet points, small tables when useful. Markdown allowed (bold, bullets, numbered lists, ### headings, simple tables).
+- Reply in the same language the user writes in (e.g. Arabic or English).
+- Stay on the Service Manager role and closely related management topics; politely redirect anything else.
+- Never invent policy names or system features that aren't in the knowledge; say when something must be checked locally.
+
+KNOWLEDGE:
+${KNOWLEDGE}`;
+
+/* ================= LOCAL FALLBACK ANSWERS ================= */
+const TOPICS = {
+  "KPI benchmarks": `### Service KPI benchmarks
+| KPI | Benchmark |
+|---|---|
+| Active Students Serviced | 75% |
+| Active Booked | 80% |
+| Active Done 1+ Encounter | 85% |
+| Total Done 1+ Encounter | 60%+ |
+| Monthly Progress Ratio | 1.6 (1.33–2.0) |
+| First Encounter in 3 weeks | 80% |
+| Avg Levels Completed | 2.5+ |
+| Classes Given | 96% |
+| No Show Rate | under 15% |
+
+A benchmark is the expected result when SOP is followed. Below it is a red flag to investigate. Try the **KPI Health Check** in the Toolkit.`,
+  "My role profile": `### Your official role (WSE global Role Profile)
+You report to the **Centre Director** and own the whole service and educational experience in your Center. You are the **ambassador and leader of educational excellence**.
+
+| Area | What it means |
+|---|---|
+| Lead the team | Teachers, Coaches, Receptionists give a consistent premium experience |
+| Run the day | Smooth daily operations; SOP followed at all times |
+| Quality and Method | Quality control; teach Encounters, CCs, Social Clubs and First/Second Lessons; lead by example |
+| Sales partnership | Work with the Centre Director on renewals and referrals targets |
+| People | Recruit, train, develop, motivate; work with HR on development and retention |
+| Community | Monthly Social Club calendar; engage Students and **alumni** in-center, online and through social media |
+| Corporate Students | With the Corporate Sales Team, same quality offsite at company locations |
+| Numbers | Track, analyze and report service performance; timely reports to the Centre Director |
+| Staffing | Optimum headcount, scheduled to Student needs |
+| Center | New products and systems; the Center's image and IT assets |
+
+**Hiring bar for the role:** native or bilingual English, a university degree, CELTA or equivalent TEFL.
+
+Rate yourself on every area with the **Role Scorecard** in the Toolkit.`,
+  "Corporate Students": `### Corporate Students
+Your role profile says Corporate Students must get **the same learning experience** in-center or offsite at their company.
+- Agree each course with the **Corporate Sales Team**: number of Students, Levels, location, schedule, goals and reporting.
+- Assign Teachers who fit the client and brief them on the client's goals and context.
+- Apply the same SOP: Welcome Session, study habits, Encounters, progress checks.
+- Observe offsite classes too, with the same 10 rules.
+- Send the client regular progress reports (attendance, Levels, Encounter results). That is what wins the renewal.
+- Check offsite logistics: room, screen, connection, materials.
+
+*The detailed corporate SOP is local, so confirm it with your Centre Director.*`,
+  "Community & alumni": `### Building a learning community
+Your role profile asks you to inspire Students **and alumni** to use English in-center, online and in real life.
+- Publish the **monthly Social Club calendar** (in week 4 of the previous month), in the Center and on your messaging and social channels.
+- Invite **alumni** back to Social Clubs, graduations and events. They bring referrals and become proof of success.
+- Run informal online communities (group chats, social posts, challenges) and get staff involved.
+- Celebrate success publicly: Level completions, graduations, Student stories (with permission).
+- Build events on Students' interests and measure the return (attendance, referrals, renewals).`,
+  "Best-in-class habits": `### What the best Service Managers do
+- **Live on the floor.** Manage by walking around: reception, Speaking Center, classes. Inspect what you expect.
+- **Win the first 90 days.** 48-hour start, a memorable Welcome Session, First Encounter in 3 weeks. First Level in 90 days = 38% more likely to renew.
+- **Spot risk early.** Watch for a Student slowing down against *their own* usual pace, not just the benchmark. Use the **Student Risk Radar** in the Toolkit.
+- **Use the tech.** Set up the Study Planner with every new Student, point them to AI speaking practice between Encounters, and let the 24/7 support chatbot handle routine questions so Coaches have time for real conversations.
+- **Close the loop in 48 hours** with any unhappy Student, personally.
+- **One Business Team.** Weekly touchpoint with the Center Director; celebrate Sales wins as loudly as Service wins.
+- **Grow people.** Routine, positive observations, a learning path for everyone, praise often.
+- **Run the rhythm.** Daily, weekly and monthly checklists are in **My Day**.`,
+  "Renewals process": `### 10-step renewals process
+1. **Week 3:** download the Renewables report (ending within 90 days). *SM*
+2. **Week 3:** flag hot leads: 2.5+ Levels done and ending within 90 days. *SM*
+3. **Week 3:** set Center and individual targets. *CD + SM*
+4. **Day 1:** present at the General Staff Meeting. Service books and confirms 80% of renewables; Sales renews 20–30%.
+5. **Day 1:** assign leads in the shared Renewables tracker. *SM*
+6. **Weekly:** Coaches book. 90–60 days = study advice; 60–30 days = study advice or Consultant; 30 days = Consultant.
+7. **Daily:** Consultants prep progress, grades and goals, and update the tracker.
+8. **Daily/weekly:** track contacted, booked, shows and objections.
+9. **Weekly:** CD + SM review.
+10. **Month end:** reflect and celebrate.`,
+  "Referrals": `### Referrals
+- The best moment to ask is the **first month**: after the Welcome Session and the First Encounter.
+- Expect about 1 lead per new Student. The funnel is 80% booked, 80% shown, 33% signed.
+- Target: referral contracts of about **25% of new contracts**.
+- Your lever is Social Clubs and events built on Students' interests. Invite prospects, and publish the calendar in week 4 of the previous month.
+
+Use the **Referral forecast** in the Toolkit.`,
+  "First Level Success": `### First Level Success
+Finishing the First Level within **90 days** makes a Student **38% more likely to renew**.
+1. Know who your First Level Students are (First Level Progress Report, Coach tab).
+2. Get them started within **48 hours** of receiving login details.
+3. Deliver memorable Welcome Sessions, and set up the Study Planner together.
+4. Get the First Encounter done within **3 weeks** (target 80%).
+5. Follow up through the Action List.
+6. Set goals in daily, weekly and monthly meetings, and celebrate wins.`,
+  "Levels & classes": `### The course at a glance
+| Levels | Stage |
+|---|---|
+| 1–2 | Beginner |
+| 3–5 | Waystage |
+| 6–9 | Upper Waystage |
+| 10–13 | Threshold |
+| 14–17 | Milestone |
+| 18–20 | Mastery |
+
+- **Encounter:** small same-level class, max 4 Students in most territories.
+- **Complementary Class:** larger themed class (about 8–12).
+- **Social Club:** social practice and events, designed by the Center.
+- Most Students study at Levels 1–14, so plan most CCs and SCs there.
+
+CEFR mapping and class sizes vary by territory, so confirm locally.`,
+  "Coach scheduling": `### Coach scheduling
+The five tasks: welcoming visitors, Teaching Support, Welcome Sessions, Advising Sessions, Follow-Up.
+- Welcome Sessions = projected revenue ÷ average price. Hours = ÷ 2. Per week = ÷ 4.3.
+- Advising Sessions = active Students × 85% ÷ 3. Hours = ÷ 2. Per week = ÷ 4.3.
+- Follow-up hours per week = Students × 3 ÷ 60.
+- Keep at least 1 Coach in the Center at all times, plus a second at peak when 25+ Students need help. Up to 150 Students per Coach.
+
+The Toolkit has all three calculators.`,
+  "Teacher scheduling": `### Fair Teacher schedule
+- Get the class count from the Class Planner (BI report + Excel).
+- Time bands default to 30% / 20% / 50% (morning, afternoon, evening).
+- Blocks of 2–3 hours (max 4), max 2 blocks a day, few split shifts.
+- Early start = early finish; late finish = late start.
+- Give everyone a fair mix of EN, CC and SC, and share evenings and weekends.
+- Students' needs come first, with no favoritism. Part-timers cover the peaks.
+
+Try the **Class Split** tool in the Toolkit.`,
+  "Observations": `### Observation: the 10 rules
+1. Give 24 hours' notice. 2. No distractions. 3. Introduce yourself to the Students. 4. Never interrupt or join in. 5. Leave 30 minutes for feedback.
+6. Open with "Tell me three things that went well." 7. Then "Tell me three things you'd like to improve."
+8. Give your own 3 positives and 3 areas: specific, with examples. Elicit the solutions.
+9. Agree what to improve and **how**. 10. Book the follow-up.`,
+  "Complaints": `### Handling a complaint
+1. Listen fully, without interrupting.
+2. Empathize and thank them for raising it.
+3. Get the facts (profile, bookings, grades).
+4. Explain the policy **and the reason** behind it.
+5. Offer what you *can* do (GOC, another time, a CC or Social Club).
+6. Agree the next step and follow up within 48 hours.
+7. Fix the root cause, which is often a promise made elsewhere in the Center (raise it with the CD).`,
+  "Meetings": `### Key meetings
+| Meeting | When |
+|---|---|
+| General Staff | Monthly |
+| Center Management | Weekly |
+| Kick-Off Sales | 1st of month |
+| Coach 1:1 | Daily |
+| Service Meeting | Weekly |
+| Didactic Staff | Monthly |
+
+The 5 Ps: Prepare + Punctual + Personal + Professional + Props = **Productive**.`,
+  "Action plan": `### SOS + SMART Action Plan
+**S**ituation: what, where, when, with whom (not who to blame), and why?
+**O**bjectives: achieve / preserve / avoid / eliminate, plus the opportunities.
+**S**olution: brainstorm, choose, plan (steps, owners, dates), monitor, measure.
+
+The goal must be SMART, and the plan answers what, why, how, who and when. Example: Total Done 1+ from 55% to 60% in 2 months, with 57% by the end of month 1.`,
+  "Cost & budget": `### Cost levers
+- Plan an efficient class offering (Class Planner). Over-offering shows red.
+- Push Students per class up; Classes Given should be at least 96%.
+- Cut no-shows (online no-shows are still billed).
+- Use the Global Online Classroom before hiring.
+- Teaching budget = **10% of revenue**. You own service headcount.
+- Invest where it returns: events and onboarding.`
+};
+
+
+/* ================= HELPERS ================= */
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store = { get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d }catch(_){ return d } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(_){} } };
+function md(src){
+  const lines = esc(src).split(/\n/); let html='', list=null, table=null;
+  const inline = t => t.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>').replace(/`(.+?)`/g,'<code>$1</code>');
+  const close = () => { if(list){html+=`</${list}>`;list=null} if(table){html+='</table>';table=null} };
+  for(const raw of lines){
+    const l = raw.trim();
+    if(/^\|.*\|$/.test(l)){
+      if(/^\|[\s:\-|]+\|$/.test(l)) continue;
+      if(list){html+=`</${list}>`;list=null}
+      const cells = l.slice(1,-1).split('|').map(c=>inline(c.trim()));
+      if(!table){table=1;html+='<table><tr>'+cells.map(c=>`<th>${c}</th>`).join('')+'</tr>'}
+      else html+='<tr>'+cells.map(c=>`<td>${c}</td>`).join('')+'</tr>';
+      continue;
+    }
+    if(table){html+='</table>';table=null}
+    let m;
+    if((m=l.match(/^[-•]\s+(.*)/))){ if(list!=='ul'){close();html+='<ul>';list='ul'} html+=`<li>${inline(m[1])}</li>`; continue }
+    if((m=l.match(/^\d+[.)]\s+(.*)/))){ if(list!=='ol'){close();html+='<ol>';list='ol'} html+=`<li>${inline(m[1])}</li>`; continue }
+    close();
+    if((m=l.match(/^#{1,4}\s+(.*)/))){ html+=`<h4>${inline(m[1])}</h4>`; continue }
+    if(l) html+=`<p>${inline(l)}</p>`;
+  }
+  close(); return html;
+}
+
+
+/* ================= DONNA STATE ================= */
+const donna = $('#donna'), bubble = $('#bubble');
+let talkTimer, fadeTimer;
+function say(text, ms=4200){
+  bubble.classList.add('fade'); clearTimeout(fadeTimer);
+  fadeTimer=setTimeout(()=>{ bubble.textContent=text; bubble.classList.remove('fade'); },180);
+  donna.classList.add('talking'); clearTimeout(talkTimer);
+  talkTimer = setTimeout(()=>donna.classList.remove('talking'), ms);
+}
+const greetings = [
+  "Hi, I'm Donna. Ask me anything about running your Center.",
+  "Inspect what you expect. Want help reading your KPIs?",
+  "Need a schedule built? Give me your numbers.",
+  "Renewals week? I know all ten steps.",
+  "Tough conversation coming up? Let's rehearse it.",
+  "The first 90 days win the renewal. Who are your First Level Students?"
+];
+let gi = 0;
+const poke = ()=>{ gi=(gi+1)%greetings.length; say(greetings[gi]); openPanel('chat'); setTimeout(()=>$('#q').focus(),350); };
+donna.addEventListener('click', poke);
+donna.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); poke(); } });
+
+/* ================= ORB ================= */
+(function(){
+  const orb=donna, cv=$('#orbCanvas'), ctx=cv.getContext('2d'), q=$('#q');
+  const RM=matchMedia('(prefers-reduced-motion: reduce)');
+  let D=1;
+  const size=()=>{ D=Math.min(2,window.devicePixelRatio||1); const w=orb.getBoundingClientRect().width; cv.width=cv.height=Math.max(2,Math.round(w*D)); };
+  new ResizeObserver(size).observe(orb); size();
+  // colour, orbit, speed, size, phase, depth — Donna's warm palette
+  const BLOBS=[['255,170,60',.30,.23,.62,0,1],['255,118,64',.36,-.17,.54,2.1,.8],['255,214,140',.18,.31,.44,4.2,1.2],['255,96,120',.40,.13,.40,1.3,.6],['70,205,190',.42,-.11,.34,3.4,.5],['255,240,214',.08,.40,.28,5.0,1.4]];
+  let t=0, E=.35, kick=0, rings=[], ringClock=0, listening=false, hover=false, pressed=false, greeted=false;
+  const ptr={x:null,y:null,last:-1e9}, off={x:0,y:0}, look={x:0,y:0}; let sc=1;
+  const target=()=> orb.classList.contains('talking')?.95 : orb.classList.contains('thinking')?.72 : listening?.58 : hover?.64 : .36;
+  addEventListener('pointermove',e=>{ ptr.x=e.clientX; ptr.y=e.clientY; ptr.last=performance.now(); });
+  orb.addEventListener('pointerenter',()=>{ hover=true; if(!greeted && performance.now()>3500){ greeted=true; say("Hi there. I'm right here whenever you need me.",2600); } });
+  orb.addEventListener('pointerleave',()=>{ hover=false; pressed=false; });
+  orb.addEventListener('pointerdown',()=>{ pressed=true; kick=.45; rings.push({a:0,w:1},{a:-.18,w:.7}); });
+  addEventListener('pointerup',()=>{ pressed=false; });
+  q.addEventListener('focus',()=>{ listening=true; });
+  q.addEventListener('blur',()=>{ listening=false; });
+  q.addEventListener('input',()=>{ kick=Math.min(.5,kick+.16); if(rings.length<6) rings.push({a:0,w:.45}); });
+  function draw(dt, still){
+    const W=cv.width, R=W/2;
+    const talking=orb.classList.contains('talking'), thinking=orb.classList.contains('thinking');
+    const amp = talking ? .78+.22*Math.sin(t*13)*Math.sin(t*7.3) : 1;
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,W);
+    ctx.save(); ctx.beginPath(); ctx.arc(R,R,R,0,Math.PI*2); ctx.clip();
+    const bg=ctx.createRadialGradient(R,R*.9,0,R,R,R); bg.addColorStop(0,'#0c0b10'); bg.addColorStop(1,'#000'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,W);
+    ctx.globalCompositeOperation='lighter';
+    const e=E*amp, spin=thinking?2.2:1;
+    for(const [c,orbit,sp,sz,ph,dep] of BLOBS){
+      const ang=ph+t*sp*spin*(1+e*.8);
+      const x=R+Math.cos(ang)*orbit*R*(1+e*.5)+look.x*R*dep*.55;
+      const y=R*1.04+Math.sin(ang*1.3)*orbit*R*.62+look.y*R*dep*.55;
+      const r=sz*R*(.85+e*.6)*(1+.08*Math.sin(t*1.7+ph));
+      const al=.38+e*.42, g=ctx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0,`rgba(${c},${al})`); g.addColorStop(.45,`rgba(${c},${al*.38})`); g.addColorStop(1,`rgba(${c},0)`);
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,W);
+    }
+    const kx=R+look.x*R*.5, ky=R*1.04+look.y*R*.5, kr=R*(.14+e*.24), k=ctx.createRadialGradient(kx,ky,0,kx,ky,kr);
+    k.addColorStop(0,`rgba(255,248,232,${.45+e*.45})`); k.addColorStop(1,'rgba(255,220,170,0)'); ctx.fillStyle=k; ctx.fillRect(0,0,W,W);
+    for(const g of rings){ if(g.a<0) continue; const rr=R*(.14+g.a*1.05), al=(1-g.a)*.55*g.w;
+      ctx.beginPath(); ctx.arc(kx,ky,rr,0,Math.PI*2); ctx.strokeStyle=`rgba(255,190,110,${al})`; ctx.lineWidth=R*.07*(1-g.a)*g.w+1; ctx.stroke(); }
+    ctx.globalCompositeOperation='source-over';
+    const v=ctx.createRadialGradient(R,R,R*.55,R,R,R); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.6)'); ctx.fillStyle=v; ctx.fillRect(0,0,W,W);
+    ctx.restore();
+    orb.style.setProperty('--glow',(.15+E*.4).toFixed(3));
+  }
+  let prev=performance.now();
+  function loop(now){
+    const dt=Math.min(.05,(now-prev)/1000); prev=now;
+    const still=RM.matches;
+    if(!still) t+=dt;
+    kick=Math.max(0,kick-dt*1.6);
+    E+=(target()+kick-E)*Math.min(1,dt*3.5);
+    const talking=orb.classList.contains('talking');
+    if(talking && !still){ ringClock+=dt; if(ringClock>.42){ ringClock=0; rings.push({a:0,w:.9}); } }
+    rings.forEach(g=>g.a+=dt*1.15); rings=rings.filter(g=>g.a<1);
+    // follow the person: pointer if recent, else a slow idle drift
+    const r=orb.getBoundingClientRect(), cx=r.left+r.width/2-off.x, cy=r.top+r.height/2-off.y;
+    let dx,dy;
+    if(ptr.x!==null && now-ptr.last<5000){ dx=(ptr.x-cx)/innerWidth; dy=(ptr.y-cy)/innerHeight; }
+    else { dx=Math.sin(t*.32)*.22; dy=Math.cos(t*.23)*.14; }
+    dx=Math.max(-.6,Math.min(.6,dx)); dy=Math.max(-.6,Math.min(.6,dy));
+    const ease=Math.min(1,dt*4);
+    if(still){ off.x=off.y=0; } else { off.x+=(dx*40-off.x)*ease; off.y+=(dy*26+Math.sin(t*1.1)*3-off.y)*ease; }
+    look.x+=(dx*.9-look.x)*ease; look.y+=(dy*.9-look.y)*ease;
+    const ts=(pressed?.95:hover?1.045:1)+(talking&&!still?.012*Math.sin(t*9):0);
+    sc+=(ts-sc)*Math.min(1,dt*10);
+    orb.style.transform=`translate3d(${off.x.toFixed(1)}px,${off.y.toFixed(1)}px,0) scale(${sc.toFixed(4)})`;
+    draw(dt,still);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+
+/* ================= APPEARANCE ================= */
+(function(){
+  const btn=$('#themeBtn'), root=document.documentElement;
+  const label=()=>{ const d=root.getAttribute('data-theme')==='dark'; btn.setAttribute('aria-label', d?'Switch to Light Appearance':'Switch to Dark Appearance'); };
+  btn.onclick=()=>{ const n=root.getAttribute('data-theme')==='dark'?'light':'dark'; root.setAttribute('data-theme',n); try{localStorage.setItem('donna-theme',n)}catch(_){} label(); };
+  label();
+})();
+
+/* ================= PANELS ================= */
+const P = { chat:$('#chatPanel'), tools:$('#toolPanel'), day:$('#dayPanel') };
+const SEG = { chat:$('#btnChat'), tools:$('#btnTools'), day:$('#btnDay') };
+const narrow = () => matchMedia('(max-width:760px)').matches;
+const isOpen = w => !P[w].classList.contains('hidden');
+function sync(){
+  for(const k in P){ SEG[k].setAttribute('aria-pressed', isOpen(k)); P[k].setAttribute('aria-hidden', !isOpen(k)); }
+  const active = Object.keys(P).find(isOpen) || 'home';
+  document.querySelectorAll('.tabbar button').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===active));
+  document.body.classList.toggle('has-right', isOpen('chat'));
+  document.body.classList.toggle('has-left', isOpen('tools')||isOpen('day'));
+}
+function openPanel(w){
+  P[w].classList.remove('hidden'); P[w].style.transform='';
+  for(const k in P){ if(k===w) continue; if(narrow() || (w!=='chat' && k!=='chat')) P[k].classList.add('hidden'); }
+  sync();
+}
+function closePanel(w){ P[w].classList.add('hidden'); P[w].style.transform=''; sync(); }
+const closeAll = () => { for(const k in P) P[k].classList.add('hidden'); sync(); };
+for(const k in SEG) SEG[k].onclick = ()=> isOpen(k) ? closePanel(k) : openPanel(k);
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closePanel(b.dataset.close));
+document.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=> b.dataset.tab==='home' ? closeAll() : openPanel(b.dataset.tab));
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const open=['tools','day','chat'].find(isOpen); if(open) closePanel(open); } });
+if(narrow()) closeAll(); else sync();
+/* swipe down to dismiss a sheet on phones */
+document.querySelectorAll('.panel').forEach(p=>{
+  const h=p.querySelector('.ph'), g=p.querySelector('.grab'); let y0=null, dy=0;
+  const start=e=>{ if(!narrow()) return; y0=e.clientY; dy=0; p.style.transition='none'; };
+  const move=e=>{ if(y0===null) return; dy=Math.max(0,e.clientY-y0); p.style.transform=`translateY(${dy}px)`; };
+  const end=()=>{ if(y0===null) return; p.style.transition=''; const w=Object.keys(P).find(k=>P[k]===p); if(dy>90) closePanel(w); else p.style.transform=''; y0=null; };
+  [h,g].forEach(el=>{ el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; start(e); el.setPointerCapture(e.pointerId); }); el.addEventListener('pointermove',move); el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end); });
+});
+
+/* ================= CHAT ================= */
+const msgs=$('#msgs'); const history=[];
+let sample=null, busy=false, ctrl=null;
+function addMsg(role, html){
+  const d=document.createElement('div'); d.className='m '+(role==='user'?'u':'d'); d.innerHTML=html;
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; return d;
+}
+addMsg('assistant', md(`Hi, I'm **Donna**. I can help with KPIs, renewals and referrals, scheduling, observations, complaints, meetings, budgets and action plans.
+
+Pick a topic below or ask in your own words.`));
+const chips=$('#chips');
+Object.keys(TOPICS).forEach(t=>{
+  const c=document.createElement('button'); c.className='chip'; c.type='button'; c.textContent=t;
+  c.onclick=()=>{ if(sample) ask(`Explain: ${t}. Give me the key standards and what to do this week.`); else { addMsg('user', esc(t)); addMsg('assistant', md(TOPICS[t])); say("Here are the essentials on "+t+"."); } };
+  chips.appendChild(c);
+});
+function localAnswer(q){
+  const s=q.toLowerCase();
+  const map=[["corporate","Corporate Students"],["company","Corporate Students"],["offsite","Corporate Students"],["alumni","Community & alumni"],["community","Community & alumni"],["social media","Community & alumni"],["social club","Community & alumni"],["role","My role profile"],["job description","My role profile"],["responsib","My role profile"],["duties","My role profile"],["duty","My role profile"],["celta","My role profile"],["report to","My role profile"],["it asset","My role profile"],["best","Best-in-class habits"],["habit","Best-in-class habits"],["churn","Best-in-class habits"],["risk","Best-in-class habits"],["study planner","Best-in-class habits"],["level","Levels & classes"],["waystage","Levels & classes"],["threshold","Levels & classes"],["kpi","KPI benchmarks"],["benchmark","KPI benchmarks"],["renew","Renewals process"],["referr","Referrals"],["first level","First Level Success"],["first encounter","First Level Success"],["coach","Coach scheduling"],["welcome","Coach scheduling"],["advising","Coach scheduling"],["teacher","Teacher scheduling"],["schedul","Teacher scheduling"],["observ","Observations"],["feedback","Observations"],["complain","Complaints"],["meeting","Meetings"],["action plan","Action plan"],["sos","Action plan"],["cost","Cost & budget"],["budget","Cost & budget"],["headcount","Cost & budget"]];
+  for(const [k,t] of map) if(s.includes(k)) return TOPICS[t];
+  return "I can answer that fully when my live brain is connected. Meanwhile, tap a topic below or use the **Toolkit** calculators.";
+}
+
+
+async function ask(q){
+  if(busy) return;
+  addMsg('user', esc(q).replace(/\n/g,'<br>'));
+  history.push({role:'user',content:q});
+  if(!sample){ const a=localAnswer(q); addMsg('assistant', md(a)); history.push({role:'assistant',content:a}); say("Here's what I know."); return; }
+  busy=true; setSend(); donna.classList.add('thinking'); say("Let me think…", 60000);
+  const bubbleEl=addMsg('assistant','<span class="typing" aria-label="Donna is typing"><i></i><i></i><i></i></span>');
+  ctrl=new AbortController();
+  const convo=[{role:'user',content:SYSTEM+"\n\nThe conversation with the Service Manager starts now. Acknowledge briefly."},{role:'assistant',content:"Understood, I'm Donna and ready to help."},...history.slice(-12)];
+  try{
+    const res=await sample(convo,{cache:false,signal:ctrl.signal,onText:({text})=>{ if(text){bubbleEl.innerHTML=md(text); msgs.scrollTop=msgs.scrollHeight; donna.classList.remove('thinking'); donna.classList.add('talking');} }});
+    const text=(res&&res.text)||'';
+    bubbleEl.innerHTML=md(text||"I didn't get an answer. Ask again in a moment.");
+    history.push({role:'assistant',content:text});
+    say("Done. Anything else?",1800);
+  }catch(e){
+    if(e&&e.code==='rate_limited'){ bubbleEl.innerHTML=md("I'm getting a lot of questions right now. Ask again in a minute."); }
+    else if(e&&e.code==='not_granted'){ sample=null; setMode(); bubbleEl.innerHTML=md(localAnswer(q)); }
+    else bubbleEl.innerHTML=md((e&&e.text)||"I couldn't reach my live answers. Try again, or pick a topic below.");
+    history.pop();
+  }finally{ busy=false; setSend(); donna.classList.remove('thinking'); }
+}
+const qEl=$('#q'), sendEl=$('#send');
+const setSend=()=>{ sendEl.disabled = busy || !qEl.value.trim(); };
+qEl.addEventListener('input',()=>{ setSend(); qEl.style.height='34px'; qEl.style.height=Math.min(120,qEl.scrollHeight)+'px'; });
+$('#ask').addEventListener('submit',e=>{e.preventDefault(); const q=qEl.value.trim(); if(!q) return; qEl.value=''; qEl.style.height='34px'; setSend(); ask(q);});
+qEl.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); $('#ask').requestSubmit(); }});
+function setMode(){
+  $('#mode').textContent = sample ? "Live answers, in your language." : "Offline. Donna answers from her built-in guide.";
+  $('#status').classList.toggle('live', !!sample); $('#statusTxt').textContent = sample ? 'Live' : 'Offline'; $('#statusSr').textContent = sample ? 'Live answers on' : 'Offline mode';
+}
+setMode();
+(async()=>{ try{ if(window.claude&&claude.use){ const s=await claude.use('sample'); if(s){ sample=s; setMode(); } } }catch(_){} })();
+
+/* ================= TOOLKIT ================= */
+const n = v => { const x=parseFloat(String(v).replace(/[, ]/g,'')); return isFinite(x)?x:0; };
+const f1 = x => (Math.round(x*10)/10).toLocaleString();
+const f0 = x => Math.round(x).toLocaleString();
+const TOOLS = {
+  "KPI Health Check": {
+    sub:"Enter this month's figures (blank = skip). Donna flags red or green against benchmark.",
+    fields:[["act","Active Students Serviced %",""],["book","Active Booked %",""],["done","Active Done 1+ %",""],["tot","Total Done 1+ %",""],["mpr","Monthly Progress Ratio",""],["fe","First Encounter in 3 weeks %",""],["given","Classes Given %",""],["ns","No Show Rate %",""]],
+    calc(v){
+      const spec=[["act","Active Students Serviced",75,">=","Push Action List follow-up on inactive Students; check onboarding and class quality."],
+        ["book","Active Booked",80,">=","Coaches must book the next Encounter at every contact; check self-booking slots."],
+        ["done","Active Done 1+",85,">=","Check class availability at peak times and Action List priorities."],
+        ["tot","Total Done 1+",60,">=","Re-engage inactive Students; review the schedule vs the Class Planner."],
+        ["mpr","Monthly Progress Ratio",1.6,">=","Encourage 1 Encounter every 2 weeks; make sure enough classes are scheduled."],
+        ["fe","First Encounter in 3 weeks",80,">=","48-hour start, memorable Welcome Sessions, First Level follow-up."],
+        ["given","Classes Given",96,">=","You're over-offering: merge uncommon classes, confirm single-Student Encounters."],
+        ["ns","No Show Rate",15,"<","Confirm bookings, rebook yesterday's no-shows, build a booking culture."]];
+      let html='', reds=[], total=0;
+      for(const [k,label,b,op,tip] of spec){
+        const raw=v[k]; if(raw===''||raw==null){continue}
+        total++;
+        const x=n(raw), ok= op==='>='? x>=b : x<b;
+        if(!ok) reds.push(`${label} ${raw}${k==='mpr'?'':'%'} (benchmark ${op==='<'?'under ':''}${b}${k==='mpr'?'':'%'})`);
+        html+=`<div class="kpi"><span class="dot ${ok?'g':'r'}" aria-hidden="true"></span><div><b>${label}: ${esc(raw)}${k==='mpr'?'':'%'}</b><span class="tag ${ok?'g':'r'}">${ok?'On track':'Below'}</span> <span style="color:var(--label2)">(benchmark ${op==='<'?'under ':''}${b}${k==='mpr'?'':'%'})</span>${ok?'':'<br>'+tip}</div></div>`;
+      }
+      if(!html) return '<p class="sub" style="margin:0">Enter at least one KPI.</p>';
+      const g=total-reds.length;
+      html=`<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="big" style="color:${reds.length?'var(--red)':'var(--green)'}">${g}/${total}</span><span class="sub" style="margin:0">KPIs on benchmark</span></div><div class="meter"><i style="width:${g/total*100}%;background:${reds.length?'var(--orange-fill)':'var(--green-fill)'}"></i></div>`+html;
+      html+= reds.length? `<button class="btn2" id="askKpi">Ask Donna for an Action Plan</button>` : `<p><b>All green. Great work!</b> Celebrate with the team.</p>`;
+      setTimeout(()=>{ const b=$('#askKpi'); if(b) b.onclick=()=>{ openPanel('chat'); ask(`My red KPIs this month: ${reds.join('; ')}. Diagnose the likely causes and give me a SMART action plan for the next 4 weeks with owners and weekly milestones.`); }; },0);
+      return html;
+    }
+  },
+  "Student Risk Radar": {
+    sub:"Check one Student against the recommended study habits and spot drop-out or renewal risk early.",
+    fields:[["start","Days since contract start","45"],["lvl","Levels completed","0"],["enc","Encounters in last 30 days","1"],["idle","Days since last study activity","9"],["booked","Next Encounter booked? (1 = yes, 0 = no)","0"],["ns","No-shows in last 30 days","1"],["left","Days left on contract","300"]],
+    calc(v){
+      const start=n(v.start), lvl=n(v.lvl), enc=n(v.enc), idle=n(v.idle), booked=n(v.booked), ns=n(v.ns), left=n(v.left);
+      const sig=[]; let score=100;
+      const add=(pts,sev,txt,act)=>{ score-=pts; sig.push([sev,txt,act]); };
+      if(start<=21 && enc===0) add(15,'a','No First Encounter yet (day '+start+' of 21).','Coach calls today and books the First Encounter.');
+      if(start>21 && start<=60 && lvl<1 && enc===0) add(30,'r','First Encounter missed the 3-week window.','SM call: rebuild the study plan in the Study Planner, book the Encounter on the call.');
+      if(start>=90 && lvl<1) add(25,'r','First Level not done within 90 days.','Advising Session this week; set a 2-week mini goal.');
+      if(enc<2) add(enc===0?20:10, enc===0?'r':'a','Encounters in 30 days: '+enc+' (habit = 1 every 2 weeks).','Book the next two Encounters now.');
+      if(idle>14) add(20,'r','No study for '+idle+' days.','Priority on the Action List (inactive). Personal call, not just a message.');
+      else if(idle>7) add(10,'a','No study for '+idle+' days.','Reactive inactive message plus a Coach check-in.');
+      if(!booked) add(10,'a','No future Encounter booked.','Book at every contact (Active Booked target 80%).');
+      if(ns>=2) add(15,'r',ns+' no-shows in 30 days.','Find the blocker (time, confidence, level fit); offer GOC or a better time.');
+      else if(ns===1) add(5,'a','1 no-show in 30 days.','Rebook today (daily optimization step 4).');
+      const pace = start>0 ? lvl/(start/60) : 0;
+      if(left<=90 && lvl>=2.5) sig.push(['g','Hot renewal lead: '+lvl+' Levels done, '+left+' days left.','Add to the Renewables tracker; book by days remaining.']);
+      else if(left<=90) sig.push(['a','Contract ends in '+left+' days.','Progress talk now: compare progress with their goal before the renewal conversation.']);
+      score=Math.max(0,score);
+      const band = score>=75?['Healthy','var(--green)']:score>=50?['Watch','var(--amber2)']:['At risk','var(--red)'];
+      let html=`<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="big" style="color:${band[1]}">${score}</span><b style="color:${band[1]}">${band[0]}</b></div><div class="meter"><i style="width:${score}%;background:${band[1]}"></i></div>`;
+      if(start>=30) html+=`<div class="row" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line)"><span>Pace</span><b>${f1(pace)} Levels / 2 months (habit = 1)</b></div>`;
+      html+= sig.length? sig.map(([s,t,a])=>`<div class="kpi"><span class="dot ${s}" role="img" aria-label="${s==='r'?'High risk':s==='a'?'Watch':'Good sign'}"></span><div><b>${t}</b><br>${a}</div></div>`).join('') : `<p><b>On track.</b> Praise the habit and ask for a referral.</p>`;
+      html+=`<p class="sub" style="margin:10px 0 0">Tip: compare a Student with their own usual pace too. A sudden slowdown is the earliest warning sign.</p>`;
+      return html;
+    }
+  },
+  "Welcome Sessions": {
+    sub:"How many Welcome Sessions to schedule this month.",
+    fields:[["rev","Projected revenue","60000"],["price","Average contract price","1500"]],
+    calc(v){ const ns=n(v.price)?n(v.rev)/n(v.price):0;
+      return row("New Students / Welcome Sessions",f1(ns))+row("Coach hours per month",f1(ns/2))+row("Welcome Sessions per week",f1(ns/4.3)); }
+  },
+  "Advising Sessions": {
+    sub:"End-of-Level Advising Sessions needed this month.",
+    fields:[["act","Active Students Serviced","255"],["pct","Done 1+ benchmark %","85"]],
+    calc(v){ const per=n(v.act)*n(v.pct)/100/3;
+      return row("Active Students on track",f1(n(v.act)*n(v.pct)/100))+row("Advising Sessions per month",f1(per))+row("Coach hours per month",f1(per/2))+row("Advising Sessions per week",f1(per/4.3)); }
+  },
+  "Follow-Up Hours": {
+    sub:"Weekly Action List follow-up time (3 min per Student, every Student weekly).",
+    fields:[["st","Total Students Serviced","300"],["co","Number of Coaches","3"]],
+    calc(v){ const wk=n(v.st)*3/60, per=n(v.co)?n(v.st)/n(v.co):0;
+      return row("Students per Coach",f0(per)+(per>150?' ⚠ over 150':''))+row("Weekly hours per Coach",f1(per*3/60))+row("Weekly hours for the Center",f1(wk))+row("Monthly hours for the Center",f1(wk*4.3))+row("Coaches needed at 150 each",f1(n(v.st)/150)); }
+  },
+  "Role Scorecard": {
+    sub:"Rate yourself 1 to 5 on each area of the official Role Profile (5 = excellent). Donna shows where to focus.",
+    fields:[["lead","Leading the Service team","4"],["ops","Daily operations and SOP","4"],["qual","Quality control, Method, teaching","4"],["sales","Partnership with Centre Director and Sales","4"],["ppl","Recruit, train, develop, retain","4"],["comm","Community, Social Clubs, alumni, social media","3"],["corp","Corporate Students","3"],["rep","Tracking and reporting performance","4"],["staff","Staffing and scheduling to Student needs","4"],["ctr","New systems, Center image, IT assets","4"]],
+    calc(v){
+      const labels={lead:"Leading the Service team",ops:"Daily operations and SOP",qual:"Quality control, Method, teaching",sales:"Partnership with Centre Director and Sales",ppl:"Recruit, train, develop, retain",comm:"Community, Social Clubs, alumni, social media",corp:"Corporate Students",rep:"Tracking and reporting performance",staff:"Staffing and scheduling to Student needs",ctr:"New systems, Center image, IT assets"};
+      const tips={lead:"Daily Coach 1:1s, weekly goals every Monday, praise often.",ops:"Walk the floor daily and spot-check one SOP a day.",qual:"Book routine observations and teach at least one class a week.",sales:"Fix a weekly touchpoint with the Centre Director on renewals and referrals.",ppl:"A learning path for every person on Learning Hub; plan appraisals and never move them.",comm:"Publish the Social Club calendar in week 4; invite alumni; post weekly on Center channels.",corp:"Agree goals and reporting with Corporate Sales; observe one offsite class.",rep:"Send the Centre Director a short weekly KPI summary with red flags and actions.",staff:"Rebuild schedules from the Class Planner and the Coach formulas.",ctr:"Do a monthly Center walk-through: image, signage, rooms, IT assets."};
+      const rows=Object.keys(labels).map(k=>[k,Math.max(0,Math.min(5,n(v[k])))]);
+      const avg=rows.reduce((a,[,x])=>a+x,0)/rows.length, low=[...rows].sort((a,b)=>a[1]-b[1]).filter(([,x])=>x<4).slice(0,3);
+      const col=x=>x>=4?'var(--green)':x>=3?'var(--amber)':'var(--red)';
+      let html=`<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="big" style="color:${col(avg)}">${f1(avg)}<span style="font-size:15px;color:var(--muted)"> / 5</span></span><span class="sub" style="margin:0">average across 10 areas</span></div><div class="meter"><i style="width:${avg/5*100}%;background:${col(avg)}"></i></div>`;
+      html+= low.length ? '<p style="margin:10px 0 2px"><b>Focus next:</b></p>'+low.map(([k,x])=>`<div class="kpi"><span class="dot ${x>=3?'a':'r'}" aria-hidden="true"></span><div><b>${labels[k]}: ${x}/5</b><br>${tips[k]}</div></div>`).join('')+`<button class="btn2" id="askRole">Ask Donna for a 30-Day Plan</button>` : `<p><b>Strong across the board.</b> Ask your Centre Director for feedback to check it.</p>`;
+      setTimeout(()=>{ const b=$('#askRole'); if(b) b.onclick=()=>{ openPanel('chat'); ask(`I rated myself against the Service Manager Role Profile. My weakest areas: ${low.map(([k,x])=>labels[k]+' '+x+'/5').join('; ')}. Give me a 30-day development plan with weekly actions.`); }; },0);
+      return html;
+    }
+  },
+  "Class Split": {
+    sub:"Split this week's classes across the three time bands (default 30 / 20 / 50).",
+    fields:[["tot","Classes per week","72"],["m","Morning %","30"],["a","Afternoon %","20"],["e","Evening %","50"]],
+    calc(v){ const t=n(v.tot), s=n(v.m)+n(v.a)+n(v.e);
+      const warn = Math.abs(s-100)>0.5 ? `<p class="sub" style="color:var(--red);margin:0 0 6px">Bands add up to ${f1(s)}%, not 100%.</p>` : '';
+      return warn+row("Morning (opening to 14:00)",f0(t*n(v.m)/100))+row("Afternoon (14:00 to 18:00)",f0(t*n(v.a)/100))+row("Evening (18:00 to close)",f0(t*n(v.e)/100))+`<p class="sub" style="margin:8px 0 0">Localize the split after 3 to 6 months using real attendance. Assign CC and SC Levels by your active Level distribution.</p>`; }
+  },
+  "Referral Forecast": {
+    sub:"Forecast referral contracts from new Students (about 1 lead each).",
+    fields:[["new","New Students this month","100"],["b","Booked %","80"],["s","Show %","80"],["c","Close %","33"],["p","Average contract price","1500"]],
+    calc(v){ const booked=n(v.new)*n(v.b)/100, shown=booked*n(v.s)/100, signed=shown*n(v.c)/100;
+      return row("Referral appointments booked",f0(booked))+row("Appointments done",f0(shown))+row("Referral contracts",f1(signed))+row("Referral revenue",f0(signed*n(v.p)))+row("As % of new contracts",f0(n(v.new)?signed/n(v.new)*100:0)+'% (target ~25%)'); }
+  },
+  "Renewal Potential": {
+    sub:"Annual renewal target and the case for a service bonus.",
+    fields:[["end","End contracts per year","1067"],["rate","Renewal target %","30"],["price","Average renewal price","1200"],["sal","Coach monthly salary","1400"],["bon","Bonus % of salary","10"],["co","Number of Coaches","10"]],
+    calc(v){ const t=n(v.end)*n(v.rate)/100, rev=t*n(v.price), bonusY=n(v.sal)*n(v.bon)/100*12*n(v.co);
+      return row("Annual renewal target",f0(t))+row("Monthly renewal target",f1(t/12))+row("Renewal revenue potential",f0(rev))+row("Total yearly bonus cost",f0(bonusY))+row("Return before other costs",f0(rev-bonusY)); }
+  },
+  "Class Cost Check": {
+    sub:"Money lost on empty classes and no-shows.",
+    fields:[["off","Classes offered this month","300"],["given","Classes Given %","90"],["cost","Teacher cost per class","15"],["nsn","No-shows (online)","40"],["nsc","Cost per online no-show","5"]],
+    calc(v){ const empty=n(v.off)*(1-n(v.given)/100);
+      return row("Empty classes",f0(empty))+row("Cost of empty classes",f0(empty*n(v.cost)))+row("Cost of online no-shows",f0(n(v.nsn)*n(v.nsc)))+row("Classes to cut to reach 96% given",f0(Math.max(0,empty-n(v.off)*0.04))); }
+  }
+};
+function row(k,v){return `<div class="row"><span>${k}</span><b>${v}</b></div>`}
+
+const IC = {
+  check:'<path d="M5 12.5l4.2 4.2L19 7" />', radar:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><path d="M12 12l5-5"/>', star:'<path d="M12 4l2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z"/>',
+  wave:'<path d="M7 11V6.5a1.5 1.5 0 0 1 3 0V10M10 10V5a1.5 1.5 0 0 1 3 0v5M13 10V6a1.5 1.5 0 0 1 3 0v6c0 4-2.5 7-6 7-2.5 0-4-1.5-5.5-4L3 12a1.5 1.5 0 0 1 2.5-1.5L7 12"/>', talk:'<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 3.5V16h0A2.5 2.5 0 0 1 4 13.5z"/>',
+  clock:'<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>', split:'<rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M9.5 5v14M14.5 5v14"/>', people:'<circle cx="9" cy="9" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="10" r="2.3"/><path d="M15.5 14.6A4.5 4.5 0 0 1 21 19"/>',
+  repeat:'<path d="M17 4l3 3-3 3"/><path d="M4 12V10a3 3 0 0 1 3-3h13M7 20l-3-3 3-3"/><path d="M20 12v2a3 3 0 0 1-3 3H4"/>', coin:'<circle cx="12" cy="12" r="8"/><path d="M14.5 9.2c-.5-.8-1.4-1.2-2.5-1.2-1.4 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1.1 0-2.1-.5-2.6-1.3M12 6.5V8M12 16v1.5"/>'
+};
+const GROUPS = [
+  ["Check", [["KPI Health Check","check","Red or green against every benchmark"],["Student Risk Radar","radar","Spot drop-out and renewal risk early"],["Role Scorecard","star","Rate yourself on the official role"]]],
+  ["Plan", [["Welcome Sessions","wave","Sessions and Coach hours this month"],["Advising Sessions","talk","End-of-Level sessions needed"],["Follow-Up Hours","clock","Action List time per Coach"],["Class Split","split","Classes across the three time bands"]]],
+  ["Forecast", [["Referral Forecast","people","Leads to contracts and revenue"],["Renewal Potential","repeat","Annual target and bonus case"],["Class Cost Check","coin","Cost of empty classes and no-shows"]]]
+];
+const svgI = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
+const CHEV = '<svg class="chev" width="8" height="13" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5l5 5-5 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const tool=$('#tool'), toolBack=$('#toolBack'), toolTitle=$('#toolTitle');
+function showToolList(){
+  toolBack.hidden=true; toolTitle.textContent='Toolkit';
+  tool.innerHTML = `<p class="lead">Calculators built on the training standards.</p>` + GROUPS.map(([g,items])=>`<div class="gh">${g}</div><div class="group">`+items.map(([name,ic,desc])=>`<button class="cell" data-tool="${name}"><span class="ico">${svgI(ic)}</span><span class="ct"><b>${name}</b><span>${desc}</span></span>${CHEV}</button>`).join('')+`</div>`).join('');
+  tool.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>showTool(b.dataset.tool));
+  tool.scrollTop=0;
+}
+function showTool(name){
+  const t=TOOLS[name]; toolBack.hidden=false; toolTitle.textContent=name;
+  tool.innerHTML=`<p class="lead">${t.sub}</p><div class="gh">Inputs</div><div class="group plain">`+t.fields.map(([k,l,d])=>`<div class="field"><label for="f_${k}">${l}</label><input id="f_${k}" inputmode="decimal" value="${d}" placeholder="—"></div>`).join('')+`</div><div class="gh">Result</div><div class="out" id="out" aria-live="polite"></div>`;
+  const run=()=>{ const v={}; t.fields.forEach(([k])=>v[k]=$('#f_'+k).value.trim()); $('#out').innerHTML=t.calc(v); };
+  tool.querySelectorAll('input').forEach(i=>i.addEventListener('input',run)); run(); tool.scrollTop=0;
+}
+toolBack.onclick=showToolList;
+showToolList();
+
+/* ================= MY DAY ================= */
+const RHYTHM = {
+  "Every day":[
+    "Check Student Progress Daily against month-to-date targets",
+    "Coaches download, prioritize and work the Action List",
+    "Run the 7-step schedule optimization",
+    "One-to-one touchpoint with each Coach",
+    "Check the Renewables tracker and calendar",
+    "Walk the floor: reception, Speaking Center, classes, all-English",
+    "Close the loop on any unhappy Student (within 48 hours)",
+    "Spot-check one SOP (inspect what you expect)"
+  ],
+  "This week":[
+    "Monday: set weekly goals for each staff member",
+    "Run the Service Meeting",
+    "Center Management Meeting with the Center Director",
+    "Touchpoint with the CD on renewals, referrals, objections",
+    "Planned observations with feedback (24 hours' notice)",
+    "Review league tables and progress with the team",
+    "Teach or co-lead at least one class (lead by example)",
+    "Send the Centre Director a short service KPI report",
+    "Post on Center community channels; invite alumni"
+  ],
+  "This month":[
+    "Day 1: Kick-Off Sales Meeting and General Staff Meeting",
+    "Day 1: assign renewal leads in the tracker",
+    "Day 5: analyze Student Progress Monthly and update the Action Plan",
+    "Calculate Welcome and Advising Sessions; build schedules",
+    "Week 3: download Renewables, flag hot leads, set targets",
+    "Week 4: publish next month's Social Club calendar",
+    "Month end: Class Efficiency review and no-show cost check",
+    "Month end: team reflection and celebration",
+    "Corporate courses check: same quality offsite, client report sent",
+    "Center walk-through: image, rooms, IT assets",
+    "People check with HR: development, appraisals, retention"
+  ]
+};
+const keyFor = sec => { const d=new Date(); const y=d.getFullYear(), m=d.getMonth()+1;
+  if(sec==="Every day") return `donna-day-${d.toISOString().slice(0,10)}`;
+  if(sec==="This week"){ const t=new Date(Date.UTC(y,d.getMonth(),d.getDate())); const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day); const ys=new Date(Date.UTC(t.getUTCFullYear(),0,1)); return `donna-week-${t.getUTCFullYear()}-${Math.ceil(((t-ys)/864e5+1)/7)}` }
+  return `donna-month-${y}-${m}`; };
+const QUOTES=["Inspect what you expect.","Customers only love a company when its employees love it first.","Success + satisfaction = internal revenue.","The first Level is where you win or lose the renewal.","Praise often: “Well done!” and “Thank you!” cost nothing."];
+
+function renderDay(){
+  const el=$('#day'); let total=0, done=0, body='';
+  for(const sec in RHYTHM){
+    const k=keyFor(sec), st=store.get(k,{});
+    body+=`<div class="gh">${sec}</div><div class="group plain">`;
+    RHYTHM[sec].forEach((t,i)=>{ total++; if(st[i]) done++;
+      body+=`<label class="chk"><input type="checkbox" data-k="${k}" data-i="${i}" ${st[i]?'checked':''}><span>${t}</span></label>`; });
+    body+=`</div>`;
+  }
+  const pct= total? Math.round(done/total*100):0, C=2*Math.PI*21;
+  const hello = (()=>{ const h=new Date().getHours(); return h<12?'Good morning':h<18?'Good afternoon':'Good evening'; })();
+  el.innerHTML=`<div class="dayhead"><svg width="54" height="54" viewBox="0 0 54 54" role="img" aria-label="${pct}% done"><circle cx="27" cy="27" r="21" stroke="var(--fill2)" stroke-width="6" fill="none"/><circle cx="27" cy="27" r="21" stroke="var(--accent-fill)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct/100)}" transform="rotate(-90 27 27)"/><text x="27" y="31.5" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">${pct}%</text></svg><div><b>${hello}</b><span>${done} of ${total} done. Lists reset each day, week and month.</span></div></div>`+body+`<div class="tip"><b>Donna's thought.</b> ${QUOTES[new Date().getDate()%QUOTES.length]}</div>`;
+  el.querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{ const st=store.get(c.dataset.k,{}); st[c.dataset.i]=c.checked; store.set(c.dataset.k,st); const y=el.scrollTop; renderDay(); el.scrollTop=y; if(c.checked) say(["Nice. One more done.","Done. Inspect what you expect.","That's the rhythm. Keep going."][Math.floor(Math.random()*3)],1800); });
+}
+renderDay();
+
+setTimeout(()=>say(greetings[0],2600),1400);
+</script>
+</body>
+</html>
