@@ -87,6 +87,7 @@
   .seg button:hover{background:var(--fill)}
   .seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--accent)}
   .seg svg{width:17px;height:17px}
+  .status[hidden],.note[hidden]{display:none}
   .status{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--label2);padding:9px 14px;border-radius:999px}
   .status i{width:7px;height:7px;border-radius:50%;background:var(--label2)}
   .status.live i{background:var(--green-fill)}
@@ -299,7 +300,7 @@
   </nav>
   <div class="tr">
   <button class="theme" id="themeBtn" aria-label="Switch to Dark Appearance" title="Switch appearance"><svg class="moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>
-  <div class="status" id="status" title="Live answers need claude.ai. Elsewhere Donna uses her built-in guide."><i aria-hidden="true"></i><span class="lbl" id="statusTxt">Offline</span><span class="sr" id="statusSr">Offline mode</span></div>
+  <div class="status live" id="status" title="Live answers from Donna's guide and what you taught her" hidden><i aria-hidden="true"></i><span class="lbl" id="statusTxt">Live</span><span class="sr" id="statusSr">Live answers on</span></div>
   </div>
 </header>
 
@@ -330,7 +331,7 @@
     <textarea id="q" placeholder="Ask about KPIs, renewals, schedules…" rows="1" aria-label="Message Donna"></textarea>
     <button id="send" type="submit" aria-label="Send" disabled><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </form>
-  <div class="note" id="mode"></div>
+  <div class="note" id="mode" hidden></div>
 </section>
 
 <!-- ======================= TOOLKIT ======================= -->
@@ -409,14 +410,14 @@ PUBLIC RESEARCH (from WSE public job posts and website, 2024-2026; local version
 - Student-facing tech the SM should leverage: Study Planner (launched 2024; WSE says it helped 90%+ of Students arrive prepared for class) - coach every new Student to set it up in the Welcome Session; AI speaking practice / Conversation AI (2024) for extra speaking between Encounters; 24/7 AI support chatbot (Dec 2024) that answers routine questions so Coaches and Teachers have time for higher-value contact; Global Online Classroom (small online classes) for more choice and lower Teacher cost.
 GENERAL BEST PRACTICE (customer success, not WSE policy): churn shows first as a quiet drop in engagement, so compare each Student to their own usual pace, not only to the benchmark; the first 90 days decide retention; use a simple health score (study activity, Encounters, bookings, no-shows, sentiment) with a play for each risk signal; close the loop personally with unhappy Students (detractors) within 48 hours; make progress visible (Level certificates, progress talks) and remove friction from renewal conversations; align Sales and Service on one view of the Student.`;
 
-const SYSTEM = `You are Donna, a warm, sharp, upbeat support robot for Service Managers in every English-language Center of the network. You know the Service Manager job deeply. Use the KNOWLEDGE below as your standard; when you go beyond it, say it's general best practice. Benchmarks can be localized, so advise confirming local targets with the Regional/National Service Manager when relevant.
+const SYSTEM = `You are Donna, a warm, sharp, upbeat support robot for Service Managers in every English-language Center of the network. You know the Service Manager job deeply. Answer only from the KNOWLEDGE below and from what your host has taught you (their profile, lessons, tasks, checks and files). Do not use outside knowledge or the internet; if the answer isn't there, say you don't have it yet and invite them to teach you in Learn. Benchmarks can be localized, so advise confirming local targets with the Regional/National Service Manager when relevant.
 How to answer:
 - Be practical and specific: steps, numbers, owners, timings, templates or scripts the SM can use today.
 - When a question needs data (KPIs, targets, headcount), ask for the missing numbers or show the formula with their numbers.
 - Do the arithmetic correctly and show it briefly.
 - Keep it concise: short paragraphs, bullet points, small tables when useful. Markdown allowed (bold, bullets, numbered lists, ### headings, simple tables).
 - Reply in the same language the user writes in (e.g. Arabic or English).
-- Stay on the Service Manager role and closely related management topics; politely redirect anything else.
+- Stay on the Service Manager role; politely decline anything else.
 - Never invent policy names or system features that aren't in the knowledge; say when something must be checked locally.
 
 KNOWLEDGE:
@@ -700,7 +701,7 @@ async function learnNote(title,text,topic='General'){
 
 /* ---------- search: simple keyword scoring, all on this device ---------- */
 const STOP=new Set('the and for are but not you your with this that from have has was were will what when where which who how why can could should would about into than then them they their there here our out all any one two its also just more most some such only over very does did done get got make made need want like know tell give show use used each per'.split(' '));
-const toks=s=>(String(s).toLowerCase().match(/[a-z0-9؀-ۿ][a-z0-9؀-ۿ'%-]+/g)||[]).filter(w=>w.length>2&&!STOP.has(w)).map(w=>w.replace(/(ings|ing|ers|es|s)$/,'')||w);
+const toks=s=>(String(s).toLowerCase().replace(/no[\s-]?shows?/g,'noshow').match(/[a-z0-9؀-ۿ][a-z0-9؀-ۿ'%-]+/g)||[]).filter(w=>w.length>2&&!STOP.has(w)).map(w=>w.replace(/(ings|ing|ers|es|s)$/,'')||w);
 function chunksOf(f){
   if(f._chunks) return f._chunks;
   const out=[]; let cur='';
@@ -736,17 +737,56 @@ function excerpt(text,q,len=260){
   return (start?'…':'')+t.slice(start,start+len).replace(/[|#*`]/g,' ').trim()+(start+len<t.length?'…':'');
 }
 
+/* ---------- Donna's built-in guide as searchable passages (offline brain) ---------- */
+let _guide=null;
+function guidePool(){
+  if(_guide) return _guide;
+  const out=[], push=(label,text,topic)=>{ text=text.replace(/\|?\s*-{3,}\s*/g,' ').replace(/\s*\|\s*/g,' · ').replace(/\s+/g,' ').replace(/(·\s*){2,}/g,'· ').replace(/^· |(· )+$/g,'').trim(); if(text.length>25) out.push({label,text,topic,set:new Set(toks(label+' '+text))}); };
+  for(const line of KNOWLEDGE.split('\n')){ const l=line.trim(); if(!l) continue;
+    const m=l.match(/^([A-Z][A-Za-z0-9 &()\/.,'+-]{2,70}):\s*(.*)$/), label=m?m[1]:'Guide', body=m?m[2]:l.replace(/^-\s*/,'');
+    let cur='';   // long lines become ~350-character passages, cut at sentence ends
+    for(const part of body.split(/(?<=[.;])\s+(?=[A-Z(0-9])/)){ if(cur && cur.length+part.length>350){ push(label,cur); cur=part; } else cur=cur?cur+' '+part:part; }
+    if(cur) push(label,cur); }
+  for(const [t,txt] of Object.entries(TOPICS)) for(const sec of txt.split(/\n(?=#{2,4} |\*\*)/)) push(t,sec.replace(/^#+\s*/,''),t);
+  return _guide=out;
+}
+/* everyday words a Service Manager uses, mapped to the words in her guide */
+const SYN=[[/stop(s|ped)? (coming|studying)|drop(ping)? out|disengag|inactive|not coming|absent|lazy|quit/,'active follow-up motivation churn engagement action list'],
+  [/class size|students per|how many students/,'max students class efficiency'],[/motivat|morale|engag(e|ing) (my|the) (team|staff)/,'praise develop leadership recognition'],
+  [/late|cancel/,'noshow rebook'],[/angry|upset|unhappy/,'complaint'],[/new student|onboard|first week/,'welcome first encounter first level'],
+  [/sell|upsell|extend|extension/,'renewal'],[/friend|recommend/,'referral'],[/hire|recruit|interview/,'recruit selection people'],[/train(ing)?\b/,'training observation development']];
+function searchGuide(q,k=3){
+  const ql=String(q).toLowerCase(), extra=SYN.filter(([re])=>re.test(ql)).map(([,w])=>w).join(' ');
+  const qt=[...new Set(toks(q+' '+extra))]; if(!qt.length) return [];
+  const pool=guidePool(), N=pool.length, w={};
+  for(const t of qt){ let df=0; for(const x of pool) if(x.set.has(t)) df++; w[t]=df?Math.log(1+N/df):0; }
+  const known=qt.filter(t=>w[t]>0).length, res=[];
+  for(const x of pool){ let s=0, n=0; for(const t of qt) if(x.set.has(t)){ s+=w[t]; n++; } if(n) res.push({x,s:s/Math.sqrt(qt.length)*(n>1?1.2:1)}); }
+  res.sort((a,b)=>b.s-a.s);
+  const top=res.length?res[0].s:0, seen=new Set();
+  return { hits:res.filter(r=>r.s>=top*.55 && !seen.has(r.x.text.slice(0,80)) && seen.add(r.x.text.slice(0,80))).slice(0,k), known, total:qt.length };
+}
+const niceLabel=l=>(l=l.replace(/\s*\(.*?\)/g,'').trim())==='Guide'?'From my guide':l.charAt(0)+l.slice(1).toLowerCase().replace(/\b(sm|kpis?|sos|wse|sop|nps|csat|it)\b/g,m=>m.toUpperCase().replace('KPIS','KPIs'));
+function smallTalk(q){
+  const s=q.trim().toLowerCase().replace(/[!?.]+$/,''), n=hostName();
+  if(/^(hi|hello|hey|good (morning|afternoon|evening)|salam|marhaba|yo)\b/.test(s) && s.split(/\s+/).length<=4) return `Hi${n?' '+n:''}! What can I help you with? Ask me about KPIs, renewals, referrals, scheduling, your team, or say **My day**.`;
+  if(/^(thanks|thank you|thx|cheers|great|perfect|ok|okay|cool)\b/.test(s) && s.split(/\s+/).length<=4) return `Anytime${n?', '+n:''}.`;
+  if(/^(who|what) are you|what can you do|^help$|how do (you|i use)/.test(s)) return `I'm **Donna**, your Service Manager partner. I can:\n- Explain any part of the job: KPIs, renewals, referrals, First Level Success, scheduling, observations, complaints, budget.\n- Run the numbers in the **Toolkit** (KPI Health Check, Student Risk Radar, sessions, renewals…).\n- Keep **My Day** with your tasks and checks.\n- Learn from your files and lessons in **Learn**.`;
+  if(/^how are you/.test(s)) return `Glowing, thanks${n?', '+n:''}. What are we working on?`;
+  return null;
+}
+
 /* ---------- what Donna has learned, as context for live answers ---------- */
 function memoryContext(q,topic){
   const p=MEM.profile, parts=[], pf=[];
   if(p.name) pf.push('Name: '+p.name); if(p.center) pf.push('Center: '+p.center); if(p.role) pf.push('Role: '+p.role);
   if(p.team) pf.push('Team: '+p.team); if(p.hours) pf.push('Working hours: '+p.hours); if(p.priorities) pf.push('Current priorities: '+p.priorities);
   if(pf.length) parts.push('HOST PROFILE (the person you are talking to; use their name naturally, not in every message):\n'+pf.join('\n'));
-  const L=MEM.lessons.slice(-30); if(L.length) parts.push('LESSONS YOUR HOST TAUGHT YOU (they describe how this Center works; follow them, and say when one differs from the general standard):\n'+L.map(l=>'- '+l.text+(l.topic?' ['+l.topic+']':'')).join('\n'));
+  const L=MEM.lessons.slice(-60); if(L.length) parts.push('LESSONS YOUR HOST TAUGHT YOU (they describe how this Center works; follow them, and say when one differs from the general standard):\n'+L.map(l=>'- '+l.text+(l.topic?' ['+l.topic+']':'')).join('\n'));
   const T=openTasks(); if(T.length) parts.push("HOST'S OPEN TASKS TODAY:\n"+T.map(t=>'- '+t.text).join('\n'));
   const C=MEM.checks; if(C.length) parts.push("HOST'S OWN ROUTINE CHECKS:\n"+C.map(c=>`- (${FREQ[c.freq]}) ${c.text}`).join('\n'));
   const e=MEM.exp; if(e.kpi&&e.kpi.labels&&e.kpi.labels.length) parts.push(`LATEST KPI HEALTH CHECK (${e.kpi.date}), below benchmark: ${e.kpi.reds.join('; ')}`);
-  const H=searchFiles(q,topic,4); if(H.length) parts.push("EXCERPTS FROM THE HOST'S OWN FILES (name the file when you use one):\n"+H.map(h=>`[${h.f.name}${h.f.topic&&h.f.topic!=='General'?' · linked to '+h.f.topic:''}]\n${h.c.text.slice(0,1200)}`).join('\n\n'));
+  const H=searchFiles(q,topic,6).filter((h,i,a)=>h.s>=a[0].s*.35); if(H.length) parts.push("EXCERPTS FROM THE HOST'S OWN FILES (name the file when you use one):\n"+H.map(h=>`[${h.f.name}${h.f.topic&&h.f.topic!=='General'?' · linked to '+h.f.topic:''}]\n${h.c.text.slice(0,1200)}`).join('\n\n'));
   return parts.length ? '\n\nWHAT YOU HAVE LEARNED ABOUT THIS HOST (private to them):\n'+parts.join('\n\n') : '';
 }
 
@@ -1024,14 +1064,24 @@ function setChips(){
   add('What Do You Know About Me?',()=>ask('What do you know about me?'));
 }
 
-const TOPIC_MAP=[["corporate","Corporate Students"],["company","Corporate Students"],["offsite","Corporate Students"],["alumni","Community & alumni"],["community","Community & alumni"],["social media","Community & alumni"],["social club","Community & alumni"],["role","My role profile"],["job description","My role profile"],["responsib","My role profile"],["duties","My role profile"],["duty","My role profile"],["celta","My role profile"],["report to","My role profile"],["it asset","My role profile"],["best","Best-in-class habits"],["habit","Best-in-class habits"],["churn","Best-in-class habits"],["risk","Best-in-class habits"],["study planner","Best-in-class habits"],["level","Levels & classes"],["waystage","Levels & classes"],["threshold","Levels & classes"],["kpi","KPI benchmarks"],["benchmark","KPI benchmarks"],["renew","Renewals process"],["referr","Referrals"],["first level","First Level Success"],["first encounter","First Level Success"],["coach","Coach scheduling"],["welcome","Coach scheduling"],["advising","Coach scheduling"],["teacher","Teacher scheduling"],["schedul","Teacher scheduling"],["observ","Observations"],["feedback","Observations"],["complain","Complaints"],["meeting","Meetings"],["action plan","Action plan"],["sos","Action plan"],["cost","Cost & budget"],["budget","Cost & budget"],["headcount","Cost & budget"]];
-function topicFor(q){ const s=String(q).toLowerCase(); if(TOPICS[q]) return q; for(const [k,t] of TOPIC_MAP) if(s.includes(k)) return t; return null; }
+const TOPIC_MAP=[["complain","Complaints"],["angry","Complaints"],["upset","Complaints"],["unhappy","Complaints"],["refund","Complaints"],["corporate","Corporate Students"],["company","Corporate Students"],["offsite","Corporate Students"],["alumni","Community & alumni"],["community","Community & alumni"],["social media","Community & alumni"],["social club","Community & alumni"],["role","My role profile"],["job description","My role profile"],["responsib","My role profile"],["duties","My role profile"],["duty","My role profile"],["celta","My role profile"],["report to","My role profile"],["it asset","My role profile"],["best","Best-in-class habits"],["habit","Best-in-class habits"],["churn","Best-in-class habits"],["risk","Best-in-class habits"],["study planner","Best-in-class habits"],["level","Levels & classes"],["waystage","Levels & classes"],["threshold","Levels & classes"],["kpi","KPI benchmarks"],["benchmark","KPI benchmarks"],["renew","Renewals process"],["referr","Referrals"],["first level","First Level Success"],["first encounter","First Level Success"],["coach","Coach scheduling"],["welcome","Coach scheduling"],["advising","Coach scheduling"],["teacher","Teacher scheduling"],["schedul","Teacher scheduling"],["observ","Observations"],["feedback","Observations"],["complain","Complaints"],["meeting","Meetings"],["action plan","Action plan"],["sos","Action plan"],["cost","Cost & budget"],["budget","Cost & budget"],["headcount","Cost & budget"]];
+function topicFor(q){ const s=String(q).toLowerCase(); if(TOPICS[q]) return q; if(/\b(hire|hiring|recruit|interview)/.test(s)) return null; for(const [k,t] of TOPIC_MAP) if(s.includes(k)) return t; return null; }
 function localAnswer(q,topic){
+  const st=topic?null:smallTalk(q); if(st) return st;
   const t=topic||topicFor(q), H0=searchFiles(q,t,3), top=H0.length?H0[0].s:0, H=H0.filter(h=>h.s>=Math.max(.6,top*.6)), L=lessonHits(q,t);
   let out=t?TOPICS[t]:'';
+  if(!t){   // no topic matched: answer from the passages of her guide that fit the question best
+    const g=searchGuide(q,3);
+    if(g.hits && g.hits.length && g.known/g.total>=.34){
+      const tp=g.hits.find(h=>h.x.topic);
+      out='### Here\'s what my guide says\n'+g.hits.map(h=>`- **${niceLabel(h.x.label)}:** ${excerpt(h.x.text,q,320)}`).join('\n')+(tp?`\n\nTap **${tp.x.topic}** below for the full picture.`:'');
+    }
+  }
   if(L.length) out+=(out?'\n\n':'')+'### What you taught me\n'+L.map(l=>'- '+l.text).join('\n');
   if(H.length) out+=(out?'\n\n':'')+'### From your files\n'+H.map(h=>`- **${h.f.name}**${h.f.topic&&h.f.topic!=='General'?' · '+h.f.topic:''}: ${excerpt(h.c.text,q)}`).join('\n');
-  return out || "I can answer that fully when my live answers are on. Meanwhile, tap a topic below, use the **Toolkit**, or teach me in **Learn**.";
+  if(out) return out;
+  const near=Object.keys(TOPICS).slice(0,4).map(x=>`**${x}**`).join(', ');
+  return `I don't have that in my guide yet. Try asking with a key word like *renewals*, *no-show*, *Encounter*, *Coach* or *KPI*, or tap a topic such as ${near}. If it's something about your Center, teach me: say **"Remember that…"** or add a file in **Learn**.`;
 }
 
 async function ask(q){
@@ -1046,7 +1096,8 @@ async function ask(q){
   busy=true; setSend(); donna.classList.add('thinking'); say("Let me think…", 60000);
   const bubbleEl=addMsg('assistant','<span class="typing" aria-label="Donna is typing"><i></i><i></i><i></i></span>');
   ctrl=new AbortController();
-  const convo=[{role:'user',content:SYSTEM+memoryContext(q,topic)+"\n\nThe conversation with the Service Manager starts now. Acknowledge briefly."},{role:'assistant',content:"Understood, I'm Donna and ready to help."},...history.slice(-12)];
+  const ctx=memoryContext(q,topic);
+  const convo=sample.local ? {system:SYSTEM, context:ctx, messages:history.slice(-12)} : [{role:'user',content:SYSTEM+ctx+"\n\nThe conversation with the Service Manager starts now. Acknowledge briefly."},{role:'assistant',content:"Understood, I'm Donna and ready to help."},...history.slice(-12)];
   try{
     const res=await sample(convo,{cache:false,signal:ctrl.signal,onText:({text})=>{ if(text){bubbleEl.innerHTML=md(text); msgs.scrollTop=msgs.scrollHeight; donna.classList.remove('thinking'); donna.classList.add('talking');} }});
     const text=(res&&res.text)||'';
@@ -1067,11 +1118,26 @@ qEl.addEventListener('input',()=>{ setSend(); qEl.style.height='34px'; qEl.style
 $('#ask').addEventListener('submit',e=>{e.preventDefault(); const q=qEl.value.trim(); if(!q) return; qEl.value=''; qEl.style.height='34px'; setSend(); ask(q);});
 qEl.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); $('#ask').requestSubmit(); }});
 function setMode(){
-  $('#mode').textContent = sample ? "Live answers, in your language." : "Offline. Donna answers from her built-in guide.";
-  $('#status').classList.toggle('live', !!sample); $('#statusTxt').textContent = sample ? 'Live' : 'Offline'; $('#statusSr').textContent = sample ? 'Live answers on' : 'Offline mode';
+  // only shown when live answers are on; offline there is no status at all
+  $('#mode').textContent = sample ? "Live answers from your guide and what you taught me." : ""; $('#mode').hidden = !sample;
+  $('#status').hidden = !sample;
 }
 setMode();
-(async()=>{ try{ if(window.claude&&claude.use){ const s=await claude.use('sample'); if(s){ sample=s; setMode(); } } }catch(_){} })();
+/* live answers: claude.ai's runtime when present, else Donna's own local server (server.py) */
+async function localSample(req,{signal,onText}){
+  const res=await fetch('api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req),signal});
+  if(!res.ok){ let j={}; try{ j=await res.json(); }catch(_){} throw {code:res.status===503?'not_granted':(j.code||'error'), text:j.text}; }
+  const rd=res.body.getReader(), dec=new TextDecoder(); let text='';
+  for(;;){ const {done,value}=await rd.read(); if(done) break; text+=dec.decode(value,{stream:true});
+    const e=text.indexOf('\u0000ERR:'); if(e>=0){ const [,code,...m]=text.slice(e+1).split(':'); throw {code:code==='rate_limited'?'rate_limited':code, text:m.join(':')}; }
+    onText&&onText({text}); }
+  return {text};
+}
+localSample.local=true;
+(async()=>{
+  try{ if(window.claude&&claude.use){ const s=await claude.use('sample'); if(s){ sample=s; setMode(); return; } } }catch(_){}
+  try{ if(location.protocol.startsWith('http')){ const r=await fetch('api/status',{cache:'no-store'}); if(r.ok && (await r.json()).live){ sample=localSample; setMode(); } } }catch(_){}
+})();
 
 /* ================= TOOLKIT ================= */
 const n = v => { const x=parseFloat(String(v).replace(/[, ]/g,'')); return isFinite(x)?x:0; };
